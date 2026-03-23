@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alert History - PTS{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3">
+                <i class="bi bi-clock-history"></i> Alert History
+            </h1>
+            <p class="text-muted">View all historical alerts for auditing and analysis</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Alert Type</label>
+                    <select name="alert_type" class="form-select form-select-sm">
+                        <option value="">All Types</option>
+                        <option value="deadline_approaching" {% if alert_type == 'deadline_approaching' %}selected{% endif %}>Deadline Approaching</option>
+                        <option value="deadline_missed" {% if alert_type == 'deadline_missed' %}selected{% endif %}>Deadline Missed</option>
+                        <option value="stalled_submission" {% if alert_type == 'stalled_submission' %}selected{% endif %}>Stalled Submission</option>
+                        <option value="long_in_review" {% if alert_type == 'long_in_review' %}selected{% endif %}>Long Time in Review</option>
+                        <option value="high_priority_stuck" {% if alert_type == 'high_priority_stuck' %}selected{% endif %}>High Priority Stuck</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Severity</label>
+                    <select name="severity" class="form-select form-select-sm">
+                        <option value="">All Severities</option>
+                        <option value="info" {% if severity == 'info' %}selected{% endif %}>Info</option>
+                        <option value="warning" {% if severity == 'warning' %}selected{% endif %}>Warning</option>
+                        <option value="critical" {% if severity == 'critical' %}selected{% endif %}>Critical</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Alert History Records</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Submission</th>
+                                <th>Alert Title</th>
+                                <th>Type</th>
+                                <th>Severity</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in page_obj %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">{{ record.created_at|date:"M d, Y H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'procurement:submission_detail' record.submission.id %}">
+                                            <strong>{{ record.submission.tracking_reference }}</strong>
+                                        </a>
+                                    </td>
+                                    <td>{{ record.title }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ record.get_alert_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        {% if record.severity == 'critical' %}
+                                            <span class="badge bg-danger">{{ record.get_severity_display }}</span>
+                                        {% elif record.severity == 'warning' %}
+                                            <span class="badge bg-warning">{{ record.get_severity_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ record.get_severity_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#detailsModal{{ record.id }}">
+                                            <i class="bi bi-eye"></i> View
+                                        </button>
+
+                                        <!-- Details Modal -->
+                                        <div class="modal fade" id="detailsModal{{ record.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Alert Details</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <dl class="row">
+                                                            <dt class="col-sm-4">Date</dt>
+                                                            <dd class="col-sm-8">{{ record.created_at|date:"M d, Y H:i:s" }}</dd>
+                                                            
+                                                            <dt class="col-sm-4">Submission</dt>
+                                                            <dd class="col-sm-8">
+                                                                <a href="{% url 'procurement:submission_detail' record.submission.id %}">
+                                                                    {{ record.submission.tracking_reference }}
+                                                                </a>
+                                                            </dd>
+                                                            
+                                                            <dt class="col-sm-4">Title</dt>
+                                                            <dd class="col-sm-8">{{ record.title }}</dd>
+                                                            
+                                                            <dt class="col-sm-4">Type</dt>
+                                                            <dd class="col-sm-8">{{ record.get_alert_type_display }}</dd>
+                                                            
+                                                            <dt class="col-sm-4">Severity</dt>
+                                                            <dd class="col-sm-8">
+                                                                {% if record.severity == 'critical' %}
+                                                                    <span class="badge bg-danger">{{ record.get_severity_display }}</span>
+                                                                {% elif record.severity == 'warning' %}
+                                                                    <span class="badge bg-warning">{{ record.get_severity_display }}</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-info">{{ record.get_severity_display }}</span>
+                                                                {% endif %}
+                                                            </dd>
+                                                            
+                                                            <dt class="col-sm-4">Triggered Reason</dt>
+                                                            <dd class="col-sm-8">
+                                                                <p class="text-muted small">{{ record.triggered_reason }}</p>
+                                                            </dd>
+                                                        </dl>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation" class="p-3">
+                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if alert_type %}&alert_type={{ alert_type }}{% endif %}{% if severity %}&severity={{ severity }}{% endif %}">First</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if alert_type %}&alert_type={{ alert_type }}{% endif %}{% if severity %}&severity={{ severity }}{% endif %}">Previous</a>
+                            </li>
+                        {% endif %}
+
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if alert_type %}&alert_type={{ alert_type }}{% endif %}{% if severity %}&severity={{ severity }}{% endif %}">Next</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if alert_type %}&alert_type={{ alert_type }}{% endif %}{% if severity %}&severity={{ severity }}{% endif %}">Last</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% else %}
+                <div class="alert alert-info m-3" role="alert">
+                    <i class="bi bi-info-circle"></i> No alert history records found.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

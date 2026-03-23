@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Reports - Admin{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-graph-up me-2"></i>Reports &amp; Analytics</h1>
+            <p class="text-muted mb-0">Comprehensive system usage, procurement performance and contract overview</p>
+        </div>
+    </div>
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+</div>
+
+<!-- KPI Summary Row -->
+<div class="kpi-grid kpi-grid-4 mb-4">
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Total Users</div>
+            <div class="kpi-value text-primary">{{ user_stats.total_users }}</div>
+            <div class="kpi-sub text-success">+{{ user_stats.new_users_30days }} in 30 days</div>
+        </div>
+        <div class="kpi-icon bg-primary-subtle"><i class="bi bi-people-fill text-primary"></i></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Total Submissions</div>
+            <div class="kpi-value text-info">{{ procurement_stats.total_submissions }}</div>
+            <div class="kpi-sub text-warning">{{ procurement_stats.pending_approvals }} pending</div>
+        </div>
+        <div class="kpi-icon bg-info-subtle"><i class="bi bi-file-earmark-text-fill text-info"></i></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Active Contracts</div>
+            <div class="kpi-value text-success">{{ contract_stats.active_contracts }}</div>
+            <div class="kpi-sub text-muted">{{ contract_stats.total_contracts }} total</div>
+        </div>
+        <div class="kpi-icon bg-success-subtle"><i class="bi bi-file-earmark-check-fill text-success"></i></div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Active Calls</div>
+            <div class="kpi-value text-warning">{{ procurement_stats.active_calls }}</div>
+            <div class="kpi-sub text-muted">{{ procurement_stats.total_calls }} total</div>
+        </div>
+        <div class="kpi-icon bg-warning-subtle"><i class="bi bi-megaphone-fill text-warning"></i></div>
+    </div>
+</div>
+
+<!-- Detailed Stats Row -->
+<div class="row g-4 mb-4">
+    <!-- User Statistics -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <div class="report-icon bg-primary-subtle text-primary"><i class="bi bi-person-fill"></i></div>
+                <div>
+                    <h5 class="mb-0">User Statistics</h5>
+                    <small class="text-muted">Account overview</small>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="stat-row px-3">
+                    <span class="stat-label">Total Registered</span>
+                    <span class="stat-number">{{ user_stats.total_users }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Active This Month</span>
+                    <span class="stat-number text-success">{{ user_stats.active_this_month }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">New (Last 30 Days)</span>
+                    <span class="stat-number text-info">{{ user_stats.new_users_30days }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Inactive Accounts</span>
+                    <span class="stat-number text-danger">{{ user_stats.inactive_users }}</span>
+                </div>
+                {% if user_stats.total_users > 0 %}
+                <div class="px-3 pb-3 pt-2">
+                    <small class="text-muted">Activity Rate (30d)</small>
+                    <div class="progress mt-1" style="height:8px;">
+                        <div class="progress-bar bg-success"
+                            style="width:{% widthratio user_stats.active_this_month user_stats.total_users 100 %}%;"></div>
+                    </div>
+                    <small class="text-success">{% widthratio user_stats.active_this_month user_stats.total_users 100 %}% active</small>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer text-end">
+                <a href="{% url 'admin_users' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-people me-1"></i>Manage Users
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Procurement Statistics -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <div class="report-icon bg-info-subtle text-info"><i class="bi bi-megaphone-fill"></i></div>
+                <div>
+                    <h5 class="mb-0">Procurement</h5>
+                    <small class="text-muted">Calls &amp; submissions</small>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="stat-row px-3">
+                    <span class="stat-label">Total Calls</span>
+                    <span class="stat-number">{{ procurement_stats.total_calls }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Active Calls</span>
+                    <span class="stat-number text-success">{{ procurement_stats.active_calls }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Total Submissions</span>
+                    <span class="stat-number text-info">{{ procurement_stats.total_submissions }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Progressed / Approved</span>
+                    <span class="stat-number text-primary">{{ procurement_stats.approved_submissions }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Pending Approval</span>
+                    <span class="stat-number text-warning">{{ procurement_stats.pending_approvals }}</span>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <a href="{% url 'admin_audit_logs' %}" class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-clock-history me-1"></i>Audit Trail
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contract Statistics -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <div class="report-icon bg-success-subtle text-success"><i class="bi bi-file-earmark-check-fill"></i></div>
+                <div>
+                    <h5 class="mb-0">Contracts</h5>
+                    <small class="text-muted">Agreement tracking</small>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="stat-row px-3">
+                    <span class="stat-label">Total Contracts</span>
+                    <span class="stat-number">{{ contract_stats.total_contracts }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Active</span>
+                    <span class="stat-number text-success">{{ contract_stats.active_contracts }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Completed</span>
+                    <span class="stat-number text-primary">{{ contract_stats.completed_contracts }}</span>
+                </div>
+                <div class="stat-row px-3">
+                    <span class="stat-label">Expired</span>
+                    <span class="stat-number text-danger">{{ contract_stats.expired_contracts }}</span>
+                </div>
+            </div>
+            <div class="card-footer text-end">
+                <a href="{% url 'admin_reports' %}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Submission Pipeline -->
+<div class="card mb-4">
+    <div class="card-header d-flex align-items-center gap-2">
+        <div class="report-icon bg-warning-subtle text-warning"><i class="bi bi-funnel-fill"></i></div>
+        <div>
+            <h5 class="mb-0">Submission Pipeline</h5>
+            <small class="text-muted">Submissions grouped by stage</small>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if submission_by_status %}
+        <div class="pipeline-grid">
+            {% for group in submission_by_status %}
+            <div class="pipeline-stage">
+                <div class="pipeline-count {% if group.count > 0 %}text-primary{% else %}text-muted{% endif %}">
+                    {{ group.count }}
+                </div>
+                <div class="pipeline-name">{{ group.name }}</div>
+                {% if group.count > 0 and procurement_stats.total_submissions > 0 %}
+                <div class="pipeline-bar mt-2">
+                    <div class="pipeline-fill" style="width:{% widthratio group.count procurement_stats.total_submissions 100 %}%;"></div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-3">No submission data available</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Divisions Summary -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="report-icon bg-secondary-subtle text-secondary"><i class="bi bi-diagram-3-fill"></i></div>
+                    <div>
+                        <h5 class="mb-0">Platform Overview</h5>
+                        <small class="text-muted">Key platform metrics</small>
+                    </div>
+                </div>
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-speedometer2 me-1"></i>Full Dashboard
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 border-end">
+                        <div class="overview-metric">
+                            <div class="overview-value text-primary">{{ user_stats.total_users }}</div>
+                            <div class="overview-label">Total Users</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 border-end">
+                        <div class="overview-metric">
+                            <div class="overview-value text-info">{{ procurement_stats.total_calls }}</div>
+                            <div class="overview-label">Procurement Calls</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 border-end">
+                        <div class="overview-metric">
+                            <div class="overview-value text-success">{{ procurement_stats.approved_submissions }}</div>
+                            <div class="overview-label">Progressed Submissions</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="overview-metric">
+                            <div class="overview-value text-warning">{{ procurement_stats.pending_approvals }}</div>
+                            <div class="overview-label">Awaiting Action</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* KPI 4-col */
+.kpi-grid-4 { grid-template-columns:repeat(4,1fr); }
+.kpi-sub { font-size:.76rem; margin-top:.2rem; }
+/* Report icon */
+.report-icon { width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:1.2rem; flex-shrink:0; }
+/* Stat rows */
+.stat-row { display:flex; justify-content:space-between; align-items:center; padding:.7rem 0; border-bottom:1px solid #f8f9fa; }
+.stat-row:last-child { border-bottom:none; }
+.stat-label { font-size:.88rem; color:#6c757d; }
+.stat-number { font-size:1.05rem; font-weight:700; }
+/* Pipeline */
+.pipeline-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; }
+.pipeline-stage { background:#f8f9fa; border:1px solid #e9ecef; border-radius:10px; padding:1rem; text-align:center; }
+.pipeline-count { font-size:1.8rem; font-weight:800; line-height:1; }
+.pipeline-name { font-size:.8rem; color:#6c757d; margin-top:.35rem; line-height:1.3; }
+.pipeline-bar { height:4px; background:#e9ecef; border-radius:2px; overflow:hidden; }
+.pipeline-fill { height:100%; background:#0d6efd; border-radius:2px; }
+/* Overview metrics */
+.overview-metric { padding:1rem; }
+.overview-value { font-size:2rem; font-weight:800; line-height:1; }
+.overview-label { font-size:.85rem; color:#6c757d; margin-top:.35rem; }
+@media(max-width:992px) { .kpi-grid-4 { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:576px) { .kpi-grid-4 { grid-template-columns:1fr; } }
+</style>
+{% endblock %}

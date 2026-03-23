@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Compiled Documents — CBM{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1"><i class="bi bi-folder2-open me-2 text-primary"></i>Compiled Documents</h1>
+            <p class="text-muted mb-0">Procurement plans compiled and submitted by the Procurement Team.</p>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-primary">{{ total_count }}</div>
+                    <div class="text-muted small">Total Documents</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-warning">{{ pending_count }}</div>
+                    <div class="text-muted small">Awaiting Publication</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-success">{{ published_count }}</div>
+                    <div class="text-muted small">Published</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-table me-2 text-primary"></i>All Compiled Documents</h6>
+            {% if pending_count > 0 %}
+            <span class="badge bg-warning text-dark">{{ pending_count }} awaiting your action</span>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            {% if compiled_docs %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Document</th>
+                            <th>Submitted By</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in compiled_docs %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ doc.document_name }}</div>
+                                {% if doc.description %}
+                                <div class="text-muted small text-truncate" style="max-width:260px;">{{ doc.description }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="small">
+                                {% if doc.submitted_by %}
+                                    {{ doc.submitted_by.get_full_name|default:doc.submitted_by.email }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="small text-muted">{{ doc.created_at|date:"d M Y" }}</td>
+                            <td>
+                                {% if doc.status == 'Published' %}
+                                <span class="badge bg-success">Published</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Awaiting Publication</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'procurement_compiled_document_detail' doc.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                                {% if doc.file %}
+                                <a href="{{ doc.file.url }}" download class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-folder2-open" style="font-size:2.5rem;"></i>
+                <p class="mt-3 mb-0">No compiled documents have been submitted yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

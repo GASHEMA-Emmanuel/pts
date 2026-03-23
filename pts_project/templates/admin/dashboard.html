@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Admin Dashboard - Procurement Tracking System{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-shield-check me-2"></i>Admin Dashboard</h1>
+            <p class="text-muted mb-0">Platform Management &amp; System Oversight &mdash; {{ "now"|date:"l, d F Y" }}</p>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'admin_users' %}" class="btn btn-rbc">
+            <i class="bi bi-person-plus"></i> Add User
+        </a>
+        <a href="{% url 'admin_divisions' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-diagram-3"></i> Divisions
+        </a>
+    </div>
+</div>
+
+<!-- Admin Quick Navigation -->
+<div class="admin-nav-grid mb-4">
+    <a href="{% url 'admin_users' %}" class="admin-nav-card">
+        <div class="admin-nav-icon bg-primary-subtle text-primary">
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="admin-nav-content">
+            <h5>User Management</h5>
+            <p>Create, edit &amp; manage accounts</p>
+        </div>
+        <span class="nav-count badge bg-primary-subtle text-primary">{{ stats.total_users }}</span>
+    </a>
+
+    <a href="{% url 'admin_divisions' %}" class="admin-nav-card">
+        <div class="admin-nav-icon bg-info-subtle text-info">
+            <i class="bi bi-diagram-3-fill"></i>
+        </div>
+        <div class="admin-nav-content">
+            <h5>Divisions</h5>
+            <p>Organisational structure</p>
+        </div>
+        <span class="nav-count badge bg-info-subtle text-info">{{ stats.total_divisions }}</span>
+    </a>
+
+    <a href="{% url 'admin_audit_logs' %}" class="admin-nav-card">
+        <div class="admin-nav-icon bg-danger-subtle text-danger">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="admin-nav-content">
+            <h5>Audit Logs</h5>
+            <p>Security &amp; activity trail</p>
+        </div>
+    </a>
+
+    <a href="{% url 'admin_system_settings' %}" class="admin-nav-card">
+        <div class="admin-nav-icon bg-warning-subtle text-warning">
+            <i class="bi bi-gear-fill"></i>
+        </div>
+        <div class="admin-nav-content">
+            <h5>System Settings</h5>
+            <p>Global configuration</p>
+        </div>
+    </a>
+
+    <a href="{% url 'admin_reports' %}" class="admin-nav-card">
+        <div class="admin-nav-icon bg-success-subtle text-success">
+            <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <div class="admin-nav-content">
+            <h5>Reports</h5>
+            <p>Usage &amp; performance data</p>
+        </div>
+    </a>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid kpi-grid-6 mb-4">
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Active Users</div>
+            <div class="kpi-value text-primary">{{ stats.total_users|default:"0" }}</div>
+            <div class="kpi-sub text-muted">{{ stats.total_inactive|default:"0" }} inactive</div>
+        </div>
+        <div class="kpi-icon bg-primary-subtle">
+            <i class="bi bi-people-fill text-primary"></i>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Active This Week</div>
+            <div class="kpi-value text-success">{{ stats.active_users_week|default:"0" }}</div>
+            <div class="kpi-sub text-muted">logged in last 7 days</div>
+        </div>
+        <div class="kpi-icon bg-success-subtle">
+            <i class="bi bi-person-check-fill text-success"></i>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">New Users (30d)</div>
+            <div class="kpi-value text-info">{{ stats.new_users_30days|default:"0" }}</div>
+            <div class="kpi-sub text-muted">recently registered</div>
+        </div>
+        <div class="kpi-icon bg-info-subtle">
+            <i class="bi bi-person-plus-fill text-info"></i>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Divisions</div>
+            <div class="kpi-value text-secondary">{{ stats.total_divisions|default:"0" }}</div>
+            <div class="kpi-sub text-muted">organisational units</div>
+        </div>
+        <div class="kpi-icon bg-secondary-subtle">
+            <i class="bi bi-diagram-3 text-secondary"></i>
+        </div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Active Calls</div>
+            <div class="kpi-value text-warning">{{ stats.active_calls|default:"0" }}</div>
+            <div class="kpi-sub text-muted">procurement calls open</div>
+        </div>
+        <div class="kpi-icon bg-warning-subtle">
+            <i class="bi bi-megaphone-fill text-warning"></i>
+        </div>
+    </div>
+
+    <div class="kpi-card border-danger-subtle">
+        <div class="kpi-content">
+            <div class="kpi-label">Pending Approvals</div>
+            <div class="kpi-value text-danger">{{ stats.pending_approvals|default:"0" }}</div>
+            <div class="kpi-sub text-muted">require action now</div>
+        </div>
+        <div class="kpi-icon bg-danger-subtle">
+            <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Grid -->
+<div class="dashboard-grid">
+    <!-- Left Column -->
+    <div>
+        <!-- Users by Role -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Users by Role</h5>
+                <a href="{% url 'admin_users' %}" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            <div class="card-body">
+                {% for role in user_by_role %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-medium" style="font-size:0.9rem;">{{ role.name }}</span>
+                        <span class="text-muted" style="font-size:0.85rem;">{{ role.count }} users &mdash; {{ role.percent }}%</span>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar
+                            {% if role.name == 'Admin' %}bg-danger
+                            {% elif role.name == 'CBM' %}bg-primary
+                            {% elif role.name == 'HOD/DM' %}bg-info
+                            {% elif role.name == 'Procurement Team' %}bg-success
+                            {% else %}bg-secondary{% endif %}"
+                            role="progressbar"
+                            style="width: {{ role.percent }}%;">
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">No roles configured</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-heart-pulse me-2"></i>System Health</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="status-item px-3">
+                    <div class="status-label"><i class="bi bi-circle-fill text-success me-2" style="font-size:0.6rem;"></i>Application Server</div>
+                    <span class="badge bg-success-subtle text-success">Operational</span>
+                </div>
+                <div class="status-item px-3">
+                    <div class="status-label"><i class="bi bi-circle-fill text-success me-2" style="font-size:0.6rem;"></i>Database</div>
+                    <span class="badge bg-success-subtle text-success">Connected</span>
+                </div>
+                <div class="status-item px-3">
+                    <div class="status-label"><i class="bi bi-people me-2 text-muted"></i>Active Users (Week)</div>
+                    <span class="fw-semibold">{{ active_users_week }}</span>
+                </div>
+                <div class="status-item px-3">
+                    <div class="status-label"><i class="bi bi-file-earmark me-2 text-muted"></i>Total Submissions</div>
+                    <span class="fw-semibold">{{ stats.total_submissions }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent New Users -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Recently Registered</h5>
+                <a href="{% url 'admin_users' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% for u in recent_users %}
+                <div class="d-flex align-items-center gap-3 px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
+                    <div class="user-avatar-sm">{{ u.full_name|slice:":1"|upper }}{% with parts=u.full_name.split %}{% if parts|length > 1 %}{{ parts.1|slice:":1"|upper }}{% endif %}{% endwith %}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div class="fw-medium text-truncate" style="font-size:0.9rem;">{{ u.full_name }}</div>
+                        <div class="text-muted text-truncate" style="font-size:0.78rem;">{{ u.email }}</div>
+                    </div>
+                    <div class="text-end">
+                        {% if u.role %}<span class="badge bg-info-subtle text-info" style="font-size:0.72rem;">{{ u.role.name }}</span>{% endif %}
+                        <div class="text-muted" style="font-size:0.75rem;">{{ u.created_at|date:"d M" }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-3 text-muted text-center">No users yet</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column — Activity Feed -->
+    <div>
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Recent System Activities</h5>
+                <a href="{% url 'admin_audit_logs' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="activity-list">
+                    {% for activity in recent_activities %}
+                    <div class="activity-item">
+                        <div class="activity-icon-wrap
+                            {% if activity.action == 'login' %}act-login
+                            {% elif activity.action == 'logout' %}act-logout
+                            {% elif 'create' in activity.action %}act-create
+                            {% elif 'delete' in activity.action %}act-delete
+                            {% elif 'update' in activity.action or 'edit' in activity.action %}act-update
+                            {% else %}act-other{% endif %}">
+                            <i class="bi
+                                {% if activity.action == 'login' %}bi-box-arrow-in-right
+                                {% elif activity.action == 'logout' %}bi-box-arrow-right
+                                {% elif 'create' in activity.action %}bi-plus-circle-fill
+                                {% elif 'delete' in activity.action %}bi-trash-fill
+                                {% elif 'update' in activity.action or 'edit' in activity.action %}bi-pencil-fill
+                                {% else %}bi-info-circle-fill{% endif %}">
+                            </i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">{{ activity.get_action_display }}</div>
+                            <div class="activity-description text-truncate" style="max-width:260px;">
+                                {% if activity.user %}{{ activity.user.full_name }}{% else %}System{% endif %}{% if activity.description %} &mdash; {{ activity.description }}{% endif %}
+                            </div>
+                            <div class="activity-time">{{ activity.created_at|date:"d M Y, H:i" }}{% if activity.ip_address %} &middot; {{ activity.ip_address }}{% endif %}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                        <p class="mt-2 mb-0">No recent activities</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ---- Nav grid ---- */
+.admin-nav-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:1.25rem; }
+.admin-nav-card {
+    display:flex; gap:1rem; padding:1.25rem; background:#fff;
+    border:1px solid #e9ecef; border-radius:10px; text-decoration:none;
+    color:inherit; transition:all .25s ease; align-items:center;
+}
+.admin-nav-card:hover { transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.09); border-color:#0d6efd; }
+.admin-nav-icon { width:46px; height:46px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:1.4rem; flex-shrink:0; }
+.admin-nav-content { flex:1; min-width:0; }
+.admin-nav-content h5 { margin:0; font-size:.9rem; font-weight:700; }
+.admin-nav-content p  { margin:.2rem 0 0; font-size:.78rem; color:#6c757d; }
+.nav-count { font-size:.8rem; padding:.35rem .55rem; white-space:nowrap; }
+/* ---- KPI 6-col ---- */
+.kpi-grid-6 { grid-template-columns:repeat(6,1fr); }
+.kpi-sub { font-size:.75rem; margin-top:.15rem; }
+/* ---- Status items ---- */
+.status-item { display:flex; justify-content:space-between; align-items:center; padding:.65rem 0; border-bottom:1px solid #f0f0f0; }
+.status-item:last-child { border-bottom:none; }
+.status-label { font-size:.88rem; color:#495057; }
+/* ---- Activity list ---- */
+.activity-list { max-height:560px; overflow-y:auto; }
+.activity-item { display:flex; gap:1rem; padding:.9rem 1.25rem; border-bottom:1px solid #f8f9fa; align-items:flex-start; }
+.activity-item:last-child { border-bottom:none; }
+.activity-icon-wrap { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:.95rem; flex-shrink:0; }
+.act-login  { background:#d1e7dd; color:#0f5132; }
+.act-logout { background:#fff3cd; color:#664d03; }
+.act-create { background:#cfe2ff; color:#084298; }
+.act-delete { background:#f8d7da; color:#842029; }
+.act-update { background:#d0f4f7; color:#055160; }
+.act-other  { background:#f0f0f0; color:#495057; }
+.activity-content { flex:1; min-width:0; }
+.activity-title { font-size:.88rem; font-weight:600; margin-bottom:.15rem; }
+.activity-description { font-size:.82rem; color:#6c757d; }
+.activity-time { font-size:.76rem; color:#adb5bd; margin-top:.15rem; }
+/* ---- Small avatar ---- */
+.user-avatar-sm { width:34px; height:34px; display:flex; align-items:center; justify-content:center; background:#e7f3ff; border-radius:50%; font-size:.72rem; font-weight:700; color:#0d6efd; flex-shrink:0; letter-spacing:-.5px; }
+@media(max-width:1200px) { .admin-nav-grid { grid-template-columns:repeat(3,1fr); } .kpi-grid-6 { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:768px)  { .admin-nav-grid { grid-template-columns:repeat(2,1fr); } .kpi-grid-6 { grid-template-columns:repeat(2,1fr); } }
+</style>
+{% endblock %}

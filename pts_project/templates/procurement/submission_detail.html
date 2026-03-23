@@ -1,0 +1,1968 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Procurement - {{ submission.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 fw-bold">{{ submission.item_name }}</h1>
+            <p class="text-muted">Reference: {{ submission.tracking_reference }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <span class="badge bg-primary p-2" style="font-size: 0.95rem;">
+                {{ submission.division.name }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Submission Tracker (Stages 1-3) -->
+    <div class="card mb-3">
+        <div class="card-body p-4">
+            <h5 class="mb-1 fw-bold"><i class="bi bi-send"></i> Submission Tracker</h5>
+            <p class="text-muted small mb-4">Tracks the submission from call issuance through procurement review.</p>
+            <div class="workflow-tracker">
+                <div class="workflow-stages">
+                    {% for stage in submission_workflow_viz %}
+                    <div class="workflow-stage">
+                        {% if stage.approval_date %}
+                        <div class="stage-approval-date">{{ stage.approval_date|date:"m/d/y" }}</div>
+                        {% endif %}
+                        <div class="stage-indicator {% if stage.is_completed %}completed{% elif stage.is_current %}current{% else %}pending{% endif %}">
+                            <div class="stage-number">{{ forloop.counter }}</div>
+                            {% if stage.is_completed %}<i class="bi bi-check-circle-fill"></i>{% elif stage.is_current %}<i class="bi bi-circle-fill"></i>{% else %}<i class="bi bi-circle"></i>{% endif %}
+                        </div>
+                        <div class="stage-label">{{ stage.name }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compiled Document Tracker is a separate independent process managed via the Compile Document menu -->
+
+    <style>
+        .workflow-stages {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .workflow-stages::before {
+            content: '';
+            position: absolute;
+            top: 30px;
+            left: 5%;
+            right: 5%;
+            height: 2px;
+            background: linear-gradient(to right, #ddd 0%, #ddd 50%, transparent 50%, transparent 100%);
+            z-index: 0;
+        }
+
+        .workflow-stage {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stage-approval-date {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #0d6efd;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .stage-indicator {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: white;
+            border: 2px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .stage-indicator.pending {
+            background: #f8f9fa;
+            border-color: #ddd;
+            color: #999;
+        }
+
+        .stage-indicator.current {
+            background: #e7f3ff;
+            border-color: #0d6efd;
+            color: #0d6efd;
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+        }
+
+        .stage-indicator.completed {
+            background: #d1e7dd;
+            border-color: #198754;
+            color: #198754;
+        }
+
+        .stage-indicator i {
+            font-size: 24px;
+        }
+
+        .stage-number {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .stage-label {
+            font-size: 0.85rem;
+            color: #666;
+            max-width: 100px;
+            word-wrap: break-word;
+            margin: 0 auto;
+            font-weight: 500;
+        }
+
+        .workflow-stage:first-child .stage-indicator,
+        .workflow-stage:last-child .stage-indicator {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+
+    <div class="row">
+        <!-- Left Column: Submission Details -->
+        <div class="col-md-8">
+            <!-- Current Stage Info -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Current Stage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-1">Current Stage</h6>
+                            <h4 class="mb-0">{{ current_stage.name }}</h4>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-1">Status</h6>
+                            <span class="badge bg-primary p-2" style="font-size: 0.95rem;">{{ submission.status }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage Actions Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+
+                        {% if submission.status == 'Plan Published' %}
+                        <!-- Plan published — submission workflow complete -->
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <span class="badge bg-success fs-6 p-2">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Plan Published
+                                </span>
+                                <span class="text-muted small">The procurement plan has been published. Individual tenders are now tracked separately.</span>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{% url 'submission_tender_list' submission.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-file-earmark-ruled"></i> View Tenders for this Plan
+                                </a>
+                            </div>
+
+                        <!-- Approve Procurement Draft (Stage 3) -->
+                        {% elif submission.current_stage.name == 'Review of Procurement Draft' %}
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveDraftModal">
+                                <i class="bi bi-check-circle"></i> Approve Draft
+                            </button>
+
+                        <!-- Submit Compiled Document (Stage 4) -->
+                        {% elif submission.current_stage.name == 'Submit Compiled Document' %}
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#submitCompiledDocModal">
+                                <i class="bi bi-file-earmark-arrow-up"></i> Submit Compiled Document
+                            </button>
+
+                        <!-- Publish Plan (Stage 6) -->
+                        {% elif submission.current_stage.name == 'Publish Plan' %}
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#publishPlanModal">
+                                <i class="bi bi-send-check"></i> Publish Plan
+                            </button>
+
+                        {% elif submission.current_stage.name in 'CBM Review,CBM Review TD,CBM Approval' %}
+                            <!-- Waiting for CBM action -->
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-hourglass-split me-1"></i>
+                                Awaiting CBM action at <strong>{{ submission.current_stage.name }}</strong> stage.
+                            </p>
+
+                        {% else %}
+                            <p class="text-muted mb-0">No actions available at this stage.</p>
+                        {% endif %}
+
+                    </div>
+
+                    <!-- Back / Clarification buttons -->
+                    <div class="mt-3 d-flex gap-2">
+                        {% if submission.status not in 'CBM Review,CBM Review TD,CBM Approval,Plan Published' and submission.current_stage.order <= 6 %}
+                        <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#requestClarificationModal">
+                            <i class="bi bi-question-circle"></i> Request Clarification
+                        </button>
+                        {% endif %}
+                        <a href="{% url 'procurement_submissions' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Back to List
+                        </a>
+                        {% if submission.status == 'Plan Published' %}
+                        <a href="{% url 'submission_tender_list' submission.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-list-ul"></i> View Tenders
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% comment %} <!-- Timeline Status Card (visible from Step 7 - CBM Review TD onwards) -->
+            {% if submission.current_stage.order >= 7 and submission.current_stage_deadline %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header {% if submission.timeline_status == 'expired' %}bg-danger{% elif submission.timeline_status == 'approaching' %}bg-warning{% elif submission.timeline_status == 'pending' %}bg-info{% else %}bg-secondary{% endif %} text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history"></i> Timeline Status
+                        </h5>
+                        {% if submission.timeline_status == 'expired' %}
+                            <span class="badge bg-light text-danger">OVERDUE</span>
+                        {% elif submission.timeline_status == 'approaching' %}
+                            <span class="badge bg-light text-warning">APPROACHING</span>
+                        {% elif submission.timeline_status == 'pending' %}
+                            <span class="badge bg-light text-info">ON TRACK</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if submission.current_stage_deadline %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-muted">Procurement Method</h6>
+                                <p><strong>{{ submission.procurement_method|default:"Not selected" }}</strong></p>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="text-muted">Current Stage</h6>
+                                <p><strong>{{ submission.current_stage.name }}</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-muted">Deadline</h6>
+                                <p><strong>{{ submission.current_stage_deadline|date:"d M Y, H:i" }}</strong></p>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="text-muted">Days Remaining</h6>
+                                <p>
+                                    {% if submission.timeline_days_remaining %}
+                                        <strong class="{% if submission.timeline_days_remaining > 7 %}text-success{% elif submission.timeline_days_remaining > 3 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ submission.timeline_days_remaining }} days
+                                        </strong>
+                                    {% else %}
+                                        <span class="text-danger">Overdue</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline Progress Bar -->
+                    {% if submission.current_stage_deadline and submission.current_stage %}
+                    <div class="mt-3">
+                        <small class="text-muted">Timeline Progress (Days Used)</small>
+                        <div class="progress" style="height: 20px;">
+                            <div 
+                                class="progress-bar {% if submission.is_timeline_expired %}bg-danger{% elif submission.timeline_status == 'approaching' %}bg-warning{% else %}bg-info{% endif %}" 
+                                role="progressbar" 
+                                style="width: {{ submission.timeline_progress_percentage }}%"
+                                aria-valuenow="{{ submission.timeline_progress_percentage }}" aria-valuemin="0" aria-valuemax="100"
+                            >{{ submission.timeline_progress_percentage }}%</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted mb-0">No timeline set for current stage</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %} {% endcomment %}
+
+            <!-- Submission Details Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Submission Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Item Name</h6>
+                            <p><strong>{{ submission.item_name }}</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Division</h6>
+                            <p><strong>{{ submission.division.name }}</strong></p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Tracking Reference</h6>
+                            <p><code>{{ submission.tracking_reference }}</code></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Submission Date</h6>
+                            <p><strong>{{ submission.submitted_at|date:"d M Y" }}</strong></p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Quantity</h6>
+                            <p><strong>{{ submission.quantity }} {{ submission.unit_of_measure }}</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Number of Procurement Items</h6>
+                            <p><strong class="text-primary">{{ submission.number_of_procurement_items }}</strong></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6 class="text-muted">Description</h6>
+                            <p>{{ submission.item_description }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% comment %} <!-- Umucyo Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Umucyo Information</h5>
+                </div>
+                <div class="card-body">
+                    {% if submission.umucyo_reference %}
+                        <div class="alert alert-info mb-0">
+                            <p class="mb-2">
+                                <strong>Umucyo Tender ID:</strong> {{ submission.umucyo_reference }}
+                            </p>
+                            {% if submission.umucyo_link %}
+                                <p class="mb-0">
+                                    <strong>Link:</strong> <a href="{{ submission.umucyo_link }}" target="_blank">{{ submission.umucyo_link }}</a>
+                                </p>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            No Umucyo information recorded yet.
+                        </div>
+                    {% endif %}
+
+                    {% if submission.status == 'Approved' %}
+                        <form method="post" action="{% url 'procurement_record_umucyo' submission.id %}" class="mt-3">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="umucyo_reference" class="form-label">Umucyo Tender ID</label>
+                                    <input type="text" class="form-control" id="umucyo_reference" name="umucyo_reference" 
+                                           value="{{ submission.umucyo_reference }}" placeholder="e.g., UMU-2024-001">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="umucyo_link" class="form-label">Umucyo Link</label>
+                                    <input type="url" class="form-control" id="umucyo_link" name="umucyo_link" 
+                                           value="{{ submission.umucyo_link }}" placeholder="https://umucyo.gov.rw/...">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Record Umucyo Information
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div> {% endcomment %}
+
+            {% comment %} <!-- External Activity Status -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">External Activity Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Update Status</label>
+                            <form method="post" action="{% url 'procurement_update_status' submission.id %}" class="d-flex gap-2">
+                                {% csrf_token %}
+                                <select name="status" class="form-select">
+                                    <option value="">Select Status...</option>
+                                    {% if submission.status != 'Published' %}
+                                        <option value="Published">Published</option>
+                                    {% endif %}
+                                    {% if submission.status in 'PublishedBidding' %}
+                                        <option value="Bidding">Bidding</option>
+                                    {% endif %}
+                                    {% if submission.status in 'PublishedBiddingEvaluation' %}
+                                        <option value="Evaluation">Evaluation</option>
+                                    {% endif %}
+                                    {% if submission.status in 'PublishedBiddingEvaluationAwarded' %}
+                                        <option value="Awarded">Awarded</option>
+                                    {% endif %}
+                                    {% if submission.status in 'PublishedBiddingEvaluationAwardedCompleted' %}
+                                        <option value="Completed">Completed</option>
+                                    {% endif %}
+                                </select>
+                                <button type="submit" class="btn btn-primary">Update</button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div> {% endcomment %}
+
+            <!-- Award Details -->
+            {% if submission.award_details or submission.status == 'Awarded' or submission.status == 'Completed' %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-light border-bottom">
+                        <h5 class="mb-0">Award Details</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if submission.award_details %}
+                            <div class="alert alert-success">
+                                <p class="mb-2">
+                                    <strong>Awarded Supplier:</strong> {{ submission.award_details.supplier_name }}
+                                </p>
+                                <p class="mb-2">
+                                    <strong>Award Amount:</strong> RWF {{ submission.award_details.award_amount|floatformat:0 }}
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Award Date:</strong> {{ submission.award_details.award_date }}
+                                </p>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                Award details not yet recorded.
+                            </div>
+                        {% endif %}
+
+                        {% if submission.status == 'Awarded' and not submission.award_details %}
+                            <form method="post" action="{% url 'procurement_record_award' submission.id %}" class="mt-3">
+                                {% csrf_token %}
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="supplier_name_inline" class="form-label">Awarded Supplier Name</label>
+                                        <input type="text" class="form-control" id="supplier_name_inline" name="supplier_name" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="award_amount_inline" class="form-label">Award Amount (RWF)</label>
+                                        <input type="number" class="form-control" id="award_amount_inline" name="award_amount" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="award_date_inline" class="form-label">Award Date</label>
+                                        <input type="date" class="form-control" id="award_date_inline" name="award_date" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-save"></i> Record Award Details
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Supporting Documents Section -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Supporting Documents</h5>
+                </div>
+                <div class="card-body">
+                    {% if supporting_documents %}
+                        <!-- Procurement Plan Documents -->
+                        {% if procurement_plan_docs %}
+                        <div class="mb-3">
+                            <h6 class="mb-2">
+                                <i class="bi bi-file-earmark-text"></i> Procurement Plan
+                                <span class="badge bg-secondary">{{ procurement_plan_docs|length }}</span>
+                            </h6>
+                            <div class="list-group list-group-sm">
+                                {% for doc in procurement_plan_docs %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-decoration-none">{{ doc.original_filename }}</span>
+                                        <small class="text-muted d-block">{{ doc.file_size|filesizeformat }} • Uploaded by {{ doc.uploaded_by }}</small>
+                                    </div>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#docModal{{ doc.id }}">
+                                            <i class="bi bi-eye"></i> Preview
+                                        </button>
+                                        <a href="{{ doc.file_url }}" download class="btn btn-outline-secondary">
+                                            <i class="bi bi-download"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Technical Specification Documents -->
+                        {% if technical_spec_docs %}
+                        <div class="mb-3">
+                            <h6 class="mb-2">
+                                <i class="bi bi-file-earmark-pdf"></i> Technical Specification
+                                <span class="badge bg-secondary">{{ technical_spec_docs|length }}</span>
+                            </h6>
+                            <div class="list-group list-group-sm">
+                                {% for doc in technical_spec_docs %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-decoration-none">{{ doc.original_filename }}</span>
+                                        <small class="text-muted d-block">{{ doc.file_size|filesizeformat }} • Uploaded by {{ doc.uploaded_by }}</small>
+                                    </div>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#docModal{{ doc.id }}">
+                                            <i class="bi bi-eye"></i> Preview
+                                        </button>
+                                        <a href="{{ doc.file_url }}" download class="btn btn-outline-secondary">
+                                            <i class="bi bi-download"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Market Survey Documents -->
+                        {% if market_survey_docs %}
+                        <div class="mb-0">
+                            <h6 class="mb-2">
+                                <i class="bi bi-graph-up"></i> Market Survey
+                                <span class="badge bg-secondary">{{ market_survey_docs|length }}</span>
+                            </h6>
+                            <div class="list-group list-group-sm">
+                                {% for doc in market_survey_docs %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="text-decoration-none">{{ doc.original_filename }}</span>
+                                        <small class="text-muted d-block">{{ doc.file_size|filesizeformat }} • Uploaded by {{ doc.uploaded_by }}</small>
+                                    </div>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#docModal{{ doc.id }}">
+                                            <i class="bi bi-eye"></i> Preview
+                                        </button>
+                                        <a href="{{ doc.file_url }}" download class="btn btn-outline-secondary">
+                                            <i class="bi bi-download"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">No supporting documents available.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Workflow History Section -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Workflow History</h5>
+                </div>
+                <div class="card-body">
+                    {% if workflow_history %}
+                        <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                            {% for history in workflow_history %}
+                                <div style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                                    <div style="color: #666;">
+                                        <strong style="color: #333;">[{{ history.created_at|date:"Y-m-d H:i:s" }}]</strong>
+                                        <strong style="color: #0d6efd;">{{ history.action_by.full_name|default:history.action_by.email }}</strong>
+                                        - Moved from <strong>{{ history.from_stage.name }}</strong> to <strong>{{ history.to_stage.name }}</strong>
+                                        {% if history.approval_date %}
+                                            - Approved: {{ history.approval_date|date:"Y-m-d" }}
+                                        {% endif %}
+                                        {% if history.comments %}
+                                            - {{ history.comments }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">No workflow history available yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Internal Comments</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'procurement_add_comment' submission.id %}" class="mb-4">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Add Comment</label>
+                            <textarea class="form-control" id="comment" name="comment" rows="3" 
+                                      placeholder="Add an internal note about this submission..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-chat"></i> Add Comment
+                        </button>
+                    </form>
+
+                    {% if comments %}
+                        <div class="comments-section">
+                            {% for comment in comments %}
+                                <div class="comment-item p-3 mb-2 bg-light rounded">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <strong>{{ comment.author.full_name|default:comment.author.email }}</strong>
+                                        <small class="text-muted">{{ comment.created_at|date:"d M Y, H:i" }}</small>
+                                    </div>
+                                    <p class="mb-0">{{ comment.content }}</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No comments yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Quick Actions -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if submission.status == 'Approved' %}
+                            <a href="#umucyo" class="btn btn-outline-primary" data-bs-toggle="collapse">
+                                <i class="bi bi-file-earmark-check"></i> Record Umucyo
+                            </a>
+                        {% endif %}
+
+                        {% if submission.status in 'PublishedBidding' %}
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#statusModal">
+                                <i class="bi bi-arrow-right-circle"></i> Update Status
+                            </button>
+                        {% endif %}
+
+                        {% if submission.status in 'AwardedCompleted' %}
+                            <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#awardModal">
+                                <i class="bi bi-trophy"></i> Record Award
+                            </button>
+                        {% endif %}
+
+                        <a href="{% url 'procurement_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Current Status</h6>
+                    {% if submission.status == 'Approved' %}
+                        <span class="badge bg-success p-3" style="font-size: 1rem;">{{ submission.status }}</span>
+                    {% elif submission.status == 'Published' %}
+                        <span class="badge bg-info p-3" style="font-size: 1rem;">{{ submission.status }}</span>
+                    {% elif submission.status == 'Bidding' %}
+                        <span class="badge bg-primary p-3" style="font-size: 1rem;">{{ submission.status }}</span>
+                    {% elif submission.status == 'Evaluation' %}
+                        <span class="badge bg-warning p-3" style="font-size: 1rem;">{{ submission.status }}</span>
+                    {% elif submission.status == 'Awarded' %}
+                        <span class="badge bg-success p-3" style="font-size: 1rem;">{{ submission.status }}</span>
+                    {% elif submission.status == 'Completed' %}
+                        <span class="badge bg-secondary p-3" style="font-size: 1rem;">{{ submission.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Call Document -->
+            {% if submission.call.call_document %}
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-light border-bottom">
+                    <h6 class="mb-0"><i class="bi bi-file-pdf"></i> Call Document</h6>
+                </div>
+                <div class="card-body">
+                    <small class="text-muted">
+                        <strong>{{ submission.call.call_document.name|slice:"23:" }}</strong>
+                        <br>
+                        Size: {{ submission.call.call_document.size|filesizeformat }}
+                    </small>
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#previewCallDocumentModal">
+                            <i class="bi bi-eye"></i> Preview
+                        </button>
+                        <a href="{{ submission.call.call_document.url }}" download class="btn btn-sm btn-primary">
+                            <i class="bi bi-download"></i> Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+    </div>
+</div>
+
+<!-- Record Award Modal -->
+<div class="modal fade" id="recordAwardModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record Award</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_record_award' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="supplier_name_modal" class="form-label">Awarded To</label>
+                        <input type="text" class="form-control" id="supplier_name_modal" name="supplier_name" placeholder="Company/Vendor name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="award_amount_modal" class="form-label">Awarded Amount (RWF)</label>
+                        <input type="number" class="form-control" id="award_amount_modal" name="award_amount" step="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="award_date_modal" class="form-label">Award Date</label>
+                        <input type="date" class="form-control" id="award_date_modal" name="award_date" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Record Award
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Request Clarification Modal -->
+<div class="modal fade" id="requestClarificationModal" tabindex="-1" aria-labelledby="requestClarificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="requestClarificationModalLabel">Request Clarification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_return_draft' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="clarificationMessage" class="form-label">Message</label>
+                        <textarea class="form-control" id="clarificationMessage" name="clarification_request" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Send Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Submit Compiled Document Modal (Stage 4) -->
+<div class="modal fade" id="submitCompiledDocModal" tabindex="-1" aria-labelledby="submitCompiledDocModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="submitCompiledDocModalLabel">Submit Compiled Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_submit_compiled_document' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Submit the compiled document to CBM for review. Once submitted, it cannot be undone.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Add any notes about the compiled document..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-file-earmark-arrow-up"></i> Submit to CBM
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Procurement Draft Modal (Stage 3) -->
+<div class="modal fade" id="approveDraftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Approve Procurement Draft</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_approve_draft' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to approve the procurement draft? It will move to the <strong>Submit Compiled Document</strong> stage for the Procurement Team to bundle and submit to CBM.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Approval Notes (Optional)</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Add any notes or comments..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Approve Draft
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="publishPlanModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Publish Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_publish_plan' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to publish the plan?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Publish Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Prepare TD Modal (Stage 7) -->
+<div class="modal fade" id="prepareTDModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Prepare Tender Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_prepare_td' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Enter the Umucyo tender details and submit the tender document for CBM review (TD).</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tender Number (Umucyo) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="tender_number" placeholder="e.g. RBC/2025/001" required>
+                            <small class="text-muted">The tender reference number from Umucyo e-procurement</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Procurement Method <span class="text-danger">*</span></label>
+                            <select class="form-select" name="procurement_method" required>
+                                <option value="">-- Select Method --</option>
+                                <option value="International Competitive">International Competitive</option>
+                                <option value="International Restricted">International Restricted</option>
+                                <option value="National Competitive">National Competitive</option>
+                                <option value="National Restricted">National Restricted</option>
+                                <option value="Request for Quotations">Request for Quotations</option>
+                                <option value="National Open Simplified">National Open Simplified</option>
+                                <option value="National Restricted Simplified">National Restricted Simplified</option>
+                                <option value="Prequalification">Prequalification</option>
+                                <option value="Single Source">Single Source</option>
+                                <option value="Force Account">Force Account</option>
+                                <option value="Two Stage Tendering">Two Stage Tendering</option>
+                                <option value="Turnkey">Turnkey</option>
+                                <option value="Community Participation">Community Participation</option>
+                                <option value="Competitive Dialogue">Competitive Dialogue</option>
+                                <option value="Design and Build">Design and Build</option>
+                                <option value="Pre-financing">Pre-financing</option>
+                                <option value="Reverse Auctioning">Reverse Auctioning</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Tender Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="tender_title" value="{{ submission.item_name }}" required>
+                            <small class="text-muted">Official tender title as it appears on Umucyo</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Umucyo Link (Optional)</label>
+                            <input type="url" class="form-control" name="umucyo_link" placeholder="https://umucyo.gov.rw/...">
+                            <small class="text-muted">Direct link to this tender on the Umucyo platform</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="approval_date" required>
+                            <small class="text-muted">The date this was approved in Umucyo</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes (Optional)</label>
+                            <textarea class="form-control" name="notes" rows="2" placeholder="Any additional notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Submit to CBM for TD Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Publish TD Modal (Stage 8) -->
+<div class="modal fade" id="publishTDModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Publish Tender Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_publish_td' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to publish the Tender Document?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Publish TD
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Close Bidding Modal (Stage 9) -->
+<div class="modal fade" id="closeBiddingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Close Bidding</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to close bidding and start evaluation?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> Close Bidding
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Complete Evaluation Modal (Stage 10) -->
+<div class="modal fade" id="completeEvaluationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Evaluation & Notify Bidders</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_notify_bidders' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to complete evaluation and notify bidders?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when bidders were notified in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> Complete Evaluation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- CBM Approval Modal (Stage 11) -->
+<div class="modal fade" id="notifyBiddersApprovalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">CBM Approval & Notify Bidders</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to approve evaluation results and proceed to notify bidders?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Approve & Notify
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Start Negotiation Modal (Stage 12) -->
+<div class="modal fade" id="startNegotiationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Start Negotiation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to start contract negotiation?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> Start Negotiation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Draft Contract Modal (Stage 12) -->
+<div class="modal fade" id="draftContractModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Draft Contract</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to begin contract drafting?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> Draft Contract
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Legal Review Modal (Stage 13) -->
+<div class="modal fade" id="legalReviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Legal Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to send for legal review?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> Legal Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Approval Modal (Stage 16) -->
+<div class="modal fade" id="supplierApprovalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Supplier Approval</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to proceed with supplier approval of contract terms?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> Supplier Approval
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MINIJUST Review Modal (Stage 17) -->
+<div class="modal fade" id="minijustReviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">MINIJUST Legal Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to send to MINIJUST for legal review?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> MINIJUST Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Award Contract Modal (Stage 15) -->
+<div class="modal fade" id="awardContractModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Award Contract</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to award contract to the winning bidder?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-trophy"></i> Award Contract
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Complete Submission Modal (Stage 17) -->
+<div class="modal fade" id="completeSubmissionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_advance_stage' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to mark this submission as complete?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Complete Submission
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding: 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 0;
+}
+
+.timeline-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.timeline-content {
+    padding-left: 0;
+}
+
+.timeline-item:not(:last-child) .timeline-marker::after {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 30px;
+    bottom: -100%;
+    width: 2px;
+    background-color: #e9ecef;
+}
+</style>
+
+<style>
+#pdf-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow-y: auto;
+}
+
+#pdf-canvas {
+    max-width: 100%;
+    height: auto;
+    margin: 10px auto;
+    display: block;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#pdf-loading, #pdf-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.pdf-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 10px;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
+.pdf-controls button {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+}
+
+#pdf-page-info {
+    color: #6c757d;
+    font-size: 0.9rem;
+    min-width: 150px;
+    text-align: center;
+}
+</style>
+
+<!-- Document Preview Modal -->
+{% if submission.call.call_document %}
+<div class="modal fade" id="previewCallDocumentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Document Preview: {{ submission.call.call_document.name|slice:"23:" }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="height: 600px; display: flex; flex-direction: column; padding: 0;">
+                {% if doc_file_type == 'pdf' %}
+                    <div id="pdf-container">
+                        <canvas id="pdf-canvas"></canvas>
+                        <div id="pdf-loading" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading PDF...</span>
+                            </div>
+                            <p class="mt-3 mb-0">Loading PDF...</p>
+                        </div>
+                        <div id="pdf-error" style="display: none;">
+                            <div class="alert alert-danger mb-0" role="alert">
+                                <i class="bi bi-exclamation-triangle"></i> Unable to load PDF
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pdf-controls">
+                        <button id="pdf-prev" class="btn btn-sm btn-outline-secondary" title="Previous page">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <span id="pdf-page-info" style="min-width: 150px; text-align: center;">Page 1 of 1</span>
+                        <button id="pdf-next" class="btn btn-sm btn-outline-secondary" title="Next page">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                {% elif doc_file_type == 'word' or doc_file_type == 'excel' %}
+                    <div style="padding: 15px; overflow-y: auto; flex: 1; background-color: #f5f5f5;">
+                        {% if doc_preview_html %}
+                            {{ doc_preview_html|safe }}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> Unable to load document preview. 
+                                <a href="{{ absolute_document_url }}" download class="alert-link">Click here to download</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% elif doc_file_type == 'txt' %}
+                    <div style="padding: 15px; overflow-y: auto; flex: 1;">
+                        <p class="text-muted text-center mb-3"><i class="bi bi-info-circle"></i> Text Preview</p>
+                        <pre style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; background: #f5f5f5; font-size: 0.85rem; max-height: 500px; overflow-y: auto;"><code>{{ submission.call.call_document }}</code></pre>
+                    </div>
+                {% elif doc_file_type == 'zip' %}
+                    <div style="padding: 20px;">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> ZIP files cannot be previewed. 
+                            <a href="{{ absolute_document_url }}" download class="alert-link">Click here to download</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="padding: 20px;">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> This file type cannot be previewed.
+                            <a href="{{ absolute_document_url }}" download class="alert-link">Download the file instead</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <a href="{{ absolute_document_url }}" download class="btn btn-primary">
+                    <i class="bi bi-download"></i> Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function() {
+    const pdfUrl = '{{ absolute_document_url }}';
+    let pdfDoc = null;
+    let currentPage = 1;
+    const canvas = document.getElementById('pdf-canvas');
+    const context = canvas ? canvas.getContext('2d') : null;
+    const loading = document.getElementById('pdf-loading');
+    const error = document.getElementById('pdf-error');
+    const pageInfo = document.getElementById('pdf-page-info');
+    const prevBtn = document.getElementById('pdf-prev');
+    const nextBtn = document.getElementById('pdf-next');
+    
+    if (!canvas) return;
+    
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    async function renderPage(num) {
+        try {
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: 1.5 });
+            
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            
+            await page.render(renderContext).promise;
+            currentPage = num;
+            pageInfo.textContent = `Page ${num} of ${pdfDoc.numPages}`;
+            
+            prevBtn.disabled = num <= 1;
+            nextBtn.disabled = num >= pdfDoc.numPages;
+        } catch (err) {
+            console.error('Render error:', err);
+            error.style.display = 'block';
+            loading.style.display = 'none';
+        }
+    }
+    
+    async function loadPDF() {
+        try {
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            
+            pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+            loading.style.display = 'none';
+            
+            await renderPage(1);
+        } catch (err) {
+            console.error('PDF load error:', err);
+            loading.style.display = 'none';
+            error.style.display = 'block';
+        }
+    }
+    
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) renderPage(currentPage - 1);
+    });
+    
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        if (currentPage < pdfDoc.numPages) renderPage(currentPage + 1);
+    });
+    
+    const modal = document.getElementById('previewCallDocumentModal');
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', () => {
+            if (!pdfDoc) loadPDF();
+        });
+    }
+})();
+</script>
+
+<!-- Document Preview Modals for Supporting Documents -->
+{% for doc in procurement_plan_docs %}
+<div class="modal fade" id="docModal{{ doc.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Preview: {{ doc.original_filename }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="height: 600px; display: flex; flex-direction: column; padding: 0;">
+                {% if doc.doc_file_type == 'pdf' %}
+                    <div id="pdf-container-{{ doc.id }}" style="display: flex; flex-direction: column; height: 100%; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; overflow-y: auto;">
+                        <canvas id="pdf-canvas-{{ doc.id }}" style="max-width: 100%; height: auto; margin: 10px auto; display: block; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></canvas>
+                        <div id="pdf-loading-{{ doc.id }}" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading PDF...</span>
+                            </div>
+                            <p class="mt-3 mb-0">Loading PDF...</p>
+                        </div>
+                        <div id="pdf-error-{{ doc.id }}" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center;">
+                            <div class="alert alert-danger mb-0" role="alert">
+                                <i class="bi bi-exclamation-triangle"></i> Unable to load PDF
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pdf-controls" style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 12px 10px; background: #f8f9fa; border-top: 1px solid #dee2e6; flex-shrink: 0;">
+                        <button id="pdf-prev-{{ doc.id }}" class="btn btn-sm btn-outline-secondary" title="Previous page">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <span id="pdf-page-info-{{ doc.id }}" style="color: #6c757d; font-size: 0.9rem; min-width: 150px; text-align: center;">Page 1 of 1</span>
+                        <button id="pdf-next-{{ doc.id }}" class="btn btn-sm btn-outline-secondary" title="Next page">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                {% elif doc.doc_file_type == 'word' or doc.doc_file_type == 'excel' %}
+                    <div style="padding: 15px; overflow-y: auto; flex: 1; background-color: #f5f5f5;">
+                        {% if doc.doc_preview_html %}
+                            {{ doc.doc_preview_html|safe }}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> Unable to load document preview. 
+                                <a href="{{ doc.file_url }}" download class="alert-link">Click here to download</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% elif doc.doc_file_type == 'txt' %}
+                    <div style="padding: 15px; overflow-y: auto; flex: 1;">
+                        <p class="text-muted text-center mb-3"><i class="bi bi-info-circle"></i> Text Preview</p>
+                        <pre style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; background: #f5f5f5; font-size: 0.85rem; max-height: 500px; overflow-y: auto;"><code>{{ doc.original_filename }}</code></pre>
+                    </div>
+                {% elif doc.doc_file_type == 'zip' %}
+                    <div style="padding: 20px;">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> ZIP files cannot be previewed. 
+                            <a href="{{ doc.file_url }}" download class="alert-link">Click here to download</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="padding: 20px;">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> This file type cannot be previewed.
+                            <a href="{{ doc.file_url }}" download class="alert-link">Download the file instead</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <a href="{{ doc.file_url }}" download class="btn btn-primary">
+                    <i class="bi bi-download"></i> Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    const pdfUrl = '{{ doc.absolute_url }}';
+    const docId = '{{ doc.id }}';
+    let pdfDoc = null;
+    let currentPage = 1;
+    const canvas = document.getElementById('pdf-canvas-' + docId);
+    const context = canvas ? canvas.getContext('2d') : null;
+    const loading = document.getElementById('pdf-loading-' + docId);
+    const error = document.getElementById('pdf-error-' + docId);
+    const pageInfo = document.getElementById('pdf-page-info-' + docId);
+    const prevBtn = document.getElementById('pdf-prev-' + docId);
+    const nextBtn = document.getElementById('pdf-next-' + docId);
+    
+    if (!canvas) return;
+    
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    async function renderPage(num) {
+        try {
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: 1.5 });
+            
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            
+            await page.render(renderContext).promise;
+            currentPage = num;
+            pageInfo.textContent = `Page ${num} of ${pdfDoc.numPages}`;
+            
+            prevBtn.disabled = num <= 1;
+            nextBtn.disabled = num >= pdfDoc.numPages;
+        } catch (err) {
+            console.error('Render error:', err);
+            error.style.display = 'flex';
+            loading.style.display = 'none';
+        }
+    }
+    
+    async function loadPDF() {
+        try {
+            loading.style.display = 'flex';
+            error.style.display = 'none';
+            
+            pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+            loading.style.display = 'none';
+            
+            await renderPage(1);
+        } catch (err) {
+            console.error('PDF load error:', err);
+            loading.style.display = 'none';
+            error.style.display = 'flex';
+        }
+    }
+    
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) renderPage(currentPage - 1);
+    });
+    
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        if (currentPage < pdfDoc.numPages) renderPage(currentPage + 1);
+    });
+    
+    const modal = document.getElementById('docModal' + docId);
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', () => {
+            if (!pdfDoc) loadPDF();
+        });
+    }
+})();
+</script>
+{% endfor %}
+
+{% for doc in technical_spec_docs %}
+<div class="modal fade" id="docModal{{ doc.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Preview: {{ doc.original_filename }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="height: 600px; display: flex; flex-direction: column; padding: 0;">
+                {% if doc.doc_file_type == 'pdf' %}
+                    <div id="pdf-container-{{ doc.id }}" style="display: flex; flex-direction: column; height: 100%; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; overflow-y: auto;">
+                        <canvas id="pdf-canvas-{{ doc.id }}" style="max-width: 100%; height: auto; margin: 10px auto; display: block; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></canvas>
+                        <div id="pdf-loading-{{ doc.id }}" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading PDF...</span>
+                            </div>
+                            <p class="mt-3 mb-0">Loading PDF...</p>
+                        </div>
+                        <div id="pdf-error-{{ doc.id }}" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center;">
+                            <div class="alert alert-danger mb-0" role="alert">
+                                <i class="bi bi-exclamation-triangle"></i> Unable to load PDF
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pdf-controls" style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 12px 10px; background: #f8f9fa; border-top: 1px solid #dee2e6; flex-shrink: 0;">
+                        <button id="pdf-prev-{{ doc.id }}" class="btn btn-sm btn-outline-secondary" title="Previous page">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <span id="pdf-page-info-{{ doc.id }}" style="color: #6c757d; font-size: 0.9rem; min-width: 150px; text-align: center;">Page 1 of 1</span>
+                        <button id="pdf-next-{{ doc.id }}" class="btn btn-sm btn-outline-secondary" title="Next page">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                {% elif doc.doc_file_type == 'word' or doc.doc_file_type == 'excel' %}
+                    <div style="padding: 15px; overflow-y: auto; flex: 1; background-color: #f5f5f5;">
+                        {% if doc.doc_preview_html %}
+                            {{ doc.doc_preview_html|safe }}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> Unable to load document preview. 
+                                <a href="{{ doc.file_url }}" download class="alert-link">Click here to download</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% elif doc.doc_file_type == 'txt' %}
+                    <div style="padding: 15px; overflow-y: auto; flex: 1;">
+                        <p class="text-muted text-center mb-3"><i class="bi bi-info-circle"></i> Text Preview</p>
+                        <pre style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; background: #f5f5f5; font-size: 0.85rem; max-height: 500px; overflow-y: auto;"><code>{{ doc.original_filename }}</code></pre>
+                    </div>
+                {% elif doc.doc_file_type == 'zip' %}
+                    <div style="padding: 20px;">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> ZIP files cannot be previewed. 
+                            <a href="{{ doc.file_url }}" download class="alert-link">Click here to download</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="padding: 20px;">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> This file type cannot be previewed.
+                            <a href="{{ doc.file_url }}" download class="alert-link">Download the file instead</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <a href="{{ doc.file_url }}" download class="btn btn-primary">
+                    <i class="bi bi-download"></i> Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    const pdfUrl = '{{ doc.absolute_url }}';
+    const docId = '{{ doc.id }}';
+    let pdfDoc = null;
+    let currentPage = 1;
+    const canvas = document.getElementById('pdf-canvas-' + docId);
+    const context = canvas ? canvas.getContext('2d') : null;
+    const loading = document.getElementById('pdf-loading-' + docId);
+    const error = document.getElementById('pdf-error-' + docId);
+    const pageInfo = document.getElementById('pdf-page-info-' + docId);
+    const prevBtn = document.getElementById('pdf-prev-' + docId);
+    const nextBtn = document.getElementById('pdf-next-' + docId);
+    
+    if (!canvas) return;
+    
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    async function renderPage(num) {
+        try {
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: 1.5 });
+            
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            
+            await page.render(renderContext).promise;
+            currentPage = num;
+            pageInfo.textContent = `Page ${num} of ${pdfDoc.numPages}`;
+            
+            prevBtn.disabled = num <= 1;
+            nextBtn.disabled = num >= pdfDoc.numPages;
+        } catch (err) {
+            console.error('Render error:', err);
+            error.style.display = 'flex';
+            loading.style.display = 'none';
+        }
+    }
+    
+    async function loadPDF() {
+        try {
+            loading.style.display = 'flex';
+            error.style.display = 'none';
+            
+            pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+            loading.style.display = 'none';
+            
+            await renderPage(1);
+        } catch (err) {
+            console.error('PDF load error:', err);
+            loading.style.display = 'none';
+            error.style.display = 'flex';
+        }
+    }
+    
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) renderPage(currentPage - 1);
+    });
+    
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        if (currentPage < pdfDoc.numPages) renderPage(currentPage + 1);
+    });
+    
+    const modal = document.getElementById('docModal' + docId);
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', () => {
+            if (!pdfDoc) loadPDF();
+        });
+    }
+})();
+</script>
+{% endfor %}
+
+{% for doc in market_survey_docs %}
+<div class="modal fade" id="docModal{{ doc.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Preview: {{ doc.original_filename }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="height: 600px; display: flex; flex-direction: column; padding: 0;">
+                {% if doc.doc_file_type == 'pdf' %}
+                    <div id="pdf-container-{{ doc.id }}" style="display: flex; flex-direction: column; height: 100%; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; overflow-y: auto;">
+                        <canvas id="pdf-canvas-{{ doc.id }}" style="max-width: 100%; height: auto; margin: 10px auto; display: block; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></canvas>
+                        <div id="pdf-loading-{{ doc.id }}" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading PDF...</span>
+                            </div>
+                            <p class="mt-3 mb-0">Loading PDF...</p>
+                        </div>
+                        <div id="pdf-error-{{ doc.id }}" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center;">
+                            <div class="alert alert-danger mb-0" role="alert">
+                                <i class="bi bi-exclamation-triangle"></i> Unable to load PDF
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pdf-controls" style="display: flex; justify-content: center; align-items: center; gap: 10px; padding: 12px 10px; background: #f8f9fa; border-top: 1px solid #dee2e6; flex-shrink: 0;">
+                        <button id="pdf-prev-{{ doc.id }}" class="btn btn-sm btn-outline-secondary" title="Previous page">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <span id="pdf-page-info-{{ doc.id }}" style="color: #6c757d; font-size: 0.9rem; min-width: 150px; text-align: center;">Page 1 of 1</span>
+                        <button id="pdf-next-{{ doc.id }}" class="btn btn-sm btn-outline-secondary" title="Next page">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                {% elif doc.doc_file_type == 'word' or doc.doc_file_type == 'excel' %}
+                    <div style="padding: 15px; overflow-y: auto; flex: 1; background-color: #f5f5f5;">
+                        {% if doc.doc_preview_html %}
+                            {{ doc.doc_preview_html|safe }}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> Unable to load document preview. 
+                                <a href="{{ doc.file_url }}" download class="alert-link">Click here to download</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% elif doc.doc_file_type == 'txt' %}
+                    <div style="padding: 15px; overflow-y: auto; flex: 1;">
+                        <p class="text-muted text-center mb-3"><i class="bi bi-info-circle"></i> Text Preview</p>
+                        <pre style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; background: #f5f5f5; font-size: 0.85rem; max-height: 500px; overflow-y: auto;"><code>{{ doc.original_filename }}</code></pre>
+                    </div>
+                {% elif doc.doc_file_type == 'zip' %}
+                    <div style="padding: 20px;">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> ZIP files cannot be previewed. 
+                            <a href="{{ doc.file_url }}" download class="alert-link">Click here to download</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="padding: 20px;">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> This file type cannot be previewed.
+                            <a href="{{ doc.file_url }}" download class="alert-link">Download the file instead</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <a href="{{ doc.file_url }}" download class="btn btn-primary">
+                    <i class="bi bi-download"></i> Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    const pdfUrl = '{{ doc.absolute_url }}';
+    const docId = '{{ doc.id }}';
+    let pdfDoc = null;
+    let currentPage = 1;
+    const canvas = document.getElementById('pdf-canvas-' + docId);
+    const context = canvas ? canvas.getContext('2d') : null;
+    const loading = document.getElementById('pdf-loading-' + docId);
+    const error = document.getElementById('pdf-error-' + docId);
+    const pageInfo = document.getElementById('pdf-page-info-' + docId);
+    const prevBtn = document.getElementById('pdf-prev-' + docId);
+    const nextBtn = document.getElementById('pdf-next-' + docId);
+    
+    if (!canvas) return;
+    
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    async function renderPage(num) {
+        try {
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: 1.5 });
+            
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            
+            await page.render(renderContext).promise;
+            currentPage = num;
+            pageInfo.textContent = `Page ${num} of ${pdfDoc.numPages}`;
+            
+            prevBtn.disabled = num <= 1;
+            nextBtn.disabled = num >= pdfDoc.numPages;
+        } catch (err) {
+            console.error('Render error:', err);
+            error.style.display = 'flex';
+            loading.style.display = 'none';
+        }
+    }
+    
+    async function loadPDF() {
+        try {
+            loading.style.display = 'flex';
+            error.style.display = 'none';
+            
+            pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+            loading.style.display = 'none';
+            
+            await renderPage(1);
+        } catch (err) {
+            console.error('PDF load error:', err);
+            loading.style.display = 'none';
+            error.style.display = 'flex';
+        }
+    }
+    
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) renderPage(currentPage - 1);
+    });
+    
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        if (currentPage < pdfDoc.numPages) renderPage(currentPage + 1);
+    });
+    
+    const modal = document.getElementById('docModal' + docId);
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', () => {
+            if (!pdfDoc) loadPDF();
+        });
+    }
+})();
+</script>
+{% endfor %}
+
+{% endblock %}

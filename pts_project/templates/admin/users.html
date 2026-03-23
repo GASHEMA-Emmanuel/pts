@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}User Management - Admin{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-people me-2"></i>User Management</h1>
+            <p class="text-muted mb-0">Create, edit and manage user accounts for all roles</p>
+        </div>
+    </div>
+    <button class="btn btn-rbc" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="bi bi-plus-circle me-1"></i> Add New User
+    </button>
+</div>
+
+<!-- Django messages -->
+{% if messages %}
+<div class="mb-3">
+    {% for msg in messages %}
+    <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show py-2" role="alert">
+        {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Summary Chips -->
+<div class="d-flex gap-3 mb-3 flex-wrap">
+    <span class="status-chip chip-all">
+        <i class="bi bi-people me-1"></i> All: <strong>{{ total_all_users }}</strong>
+    </span>
+    <span class="status-chip chip-active">
+        <i class="bi bi-check-circle me-1"></i> Active: <strong>{{ total_active }}</strong>
+    </span>
+    <span class="status-chip chip-inactive">
+        <i class="bi bi-x-circle me-1"></i> Inactive: <strong>{{ total_inactive }}</strong>
+    </span>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1 fw-medium" style="font-size:.85rem;">Search</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="q" value="{{ search_q }}" placeholder="Name or email…">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1 fw-medium" style="font-size:.85rem;">Role</label>
+                <select class="form-select form-select-sm" name="role">
+                    <option value="">All Roles</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}" {% if active_role_filter|slugify == role.id|slugify %}selected{% endif %}>{{ role.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1 fw-medium" style="font-size:.85rem;">Division</label>
+                <select class="form-select form-select-sm" name="division">
+                    <option value="">All Divisions</option>
+                    {% for division in divisions %}
+                    <option value="{{ division.id }}" {% if active_division_filter|slugify == division.id|slugify %}selected{% endif %}>{{ division.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1 fw-medium" style="font-size:.85rem;">Status</label>
+                <select class="form-select form-select-sm" name="status">
+                    <option value="active"   {% if active_status_filter == 'active'   %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if active_status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                    <option value="all"      {% if active_status_filter == 'all'      %}selected{% endif %}>All</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+                <a href="{% url 'admin_users' %}" class="btn btn-outline-secondary btn-sm" title="Clear filters">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Users</h5>
+        <span class="badge bg-primary rounded-pill px-3">{{ users|length }} shown</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:30%;">User</th>
+                        <th>Role</th>
+                        <th>Division</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="user-avatar-lg role-{{ u.role.name|lower|slugify }}">
+                                    {% with parts=u.full_name.split %}
+                                        {{ parts.0|slice:":1"|upper }}{% if parts|length > 1 %}{{ parts.1|slice:":1"|upper }}{% endif %}
+                                    {% endwith %}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="font-size:.92rem;">{{ u.full_name }}</div>
+                                    <div class="text-muted" style="font-size:.8rem;">{{ u.email }}</div>
+                                    {% if u.phone_number %}<div class="text-muted" style="font-size:.78rem;"><i class="bi bi-telephone me-1"></i>{{ u.phone_number }}</div>{% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if u.role %}
+                            <span class="badge role-badge-{{ u.role.name|lower|slugify }}">{{ u.role.name }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">No Role</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.division %}
+                            <span class="text-truncate d-block" style="max-width:160px;font-size:.88rem;">{{ u.division.name }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_active %}
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                            {% else %}
+                            <span class="badge bg-danger-subtle text-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.last_login %}
+                            <small class="text-muted">{{ u.last_login|date:"d M Y, H:i" }}</small>
+                            {% else %}
+                            <small class="text-muted fst-italic">Never</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <!-- Edit -->
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-edit-user"
+                                    title="Edit user"
+                                    data-user-id="{{ u.id }}"
+                                    data-full-name="{{ u.full_name }}"
+                                    data-email="{{ u.email }}"
+                                    data-phone="{{ u.phone_number|default:'' }}"
+                                    data-role-id="{{ u.role_id|default:'' }}"
+                                    data-division-id="{{ u.division_id|default:'' }}"
+                                    data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <!-- Toggle Active -->
+                                <form method="post" action="{% url 'admin_users' %}" class="d-inline"
+                                    onsubmit="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.full_name }}?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_user">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                                        title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                        <i class="bi {% if u.is_active %}bi-person-x{% else %}bi-person-check{% endif %}"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox" style="font-size:2rem;display:block;"></i>
+                            <span class="mt-2 d-block">No users found{% if search_q %} matching "{{ search_q }}"{% endif %}</span>
+                            {% if search_q or active_role_filter or active_division_filter %}
+                            <a href="{% url 'admin_users' %}" class="btn btn-sm btn-outline-secondary mt-2">Clear Filters</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== ADD USER MODAL ===================== -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'admin_users' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_user">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="full_name" required placeholder="e.g. Jean Pierre">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" name="email" required placeholder="user@example.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Phone Number</label>
+                            <input type="text" class="form-control" name="phone_number" placeholder="+250 7XX XXX XXX">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Role <span class="text-danger">*</span></label>
+                            <select class="form-select" name="role" required>
+                                <option value="">Select Role…</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Division</label>
+                            <select class="form-select" name="division">
+                                <option value="">No Division</option>
+                                {% for division in divisions %}
+                                <option value="{{ division.id }}">{{ division.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Confirm Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" name="password_confirm" required>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="addIsActive" checked>
+                                <label class="form-check-label" for="addIsActive">Account Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-rbc"><i class="bi bi-check-circle me-1"></i>Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== EDIT USER MODAL ===================== -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'admin_users' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_user">
+                <input type="hidden" name="user_id" id="editUserId">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="full_name" id="editFullName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" name="email" id="editEmail" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Phone Number</label>
+                            <input type="text" class="form-control" name="phone_number" id="editPhone">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Role</label>
+                            <select class="form-select" name="role" id="editRole">
+                                <option value="">No Role</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Division</label>
+                            <select class="form-select" name="division" id="editDivision">
+                                <option value="">No Division</option>
+                                {% for division in divisions %}
+                                <option value="{{ division.id }}">{{ division.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">New Password <small class="text-muted fw-normal">(leave blank to keep current)</small></label>
+                            <input type="password" class="form-control" name="new_password" placeholder="Enter new password to change…">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-rbc"><i class="bi bi-save me-1"></i>Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Chips */
+.status-chip { display:inline-flex; align-items:center; padding:.35rem .75rem; border-radius:20px; font-size:.85rem; }
+.chip-all     { background:#e9ecef; color:#495057; }
+.chip-active  { background:#d1f0e0; color:#0a5c36; }
+.chip-inactive{ background:#f8d7da; color:#842029; }
+/* Avatars */
+.user-avatar-lg { width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:.78rem; font-weight:700; flex-shrink:0; letter-spacing:-.5px; }
+.role-admin { background:#f8d7da; color:#842029; }
+.role-cbm { background:#cfe2ff; color:#084298; }
+.role-hodm, .role-hod-dm { background:#d0f4f7; color:#055160; }
+.role-procurement-team { background:#d1f0e0; color:#0a5c36; }
+.role-division-user, [class*='role-'] { background:#e9ecef; color:#495057; }
+/* Role badges */
+.role-badge-admin { background:#f8d7da !important; color:#842029 !important; }
+.role-badge-cbm { background:#cfe2ff !important; color:#084298 !important; }
+.role-badge-hodm, .role-badge-hod-dm { background:#d0f4f7 !important; color:#055160 !important; }
+.role-badge-procurement-team { background:#d1f0e0 !important; color:#0a5c36 !important; }
+.role-badge-division-user { background:#e9ecef !important; color:#495057 !important; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Populate edit modal from data-* attributes
+    document.querySelectorAll('.btn-edit-user').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('editUserId').value    = this.dataset.userId;
+            document.getElementById('editFullName').value  = this.dataset.fullName;
+            document.getElementById('editEmail').value     = this.dataset.email;
+            document.getElementById('editPhone').value     = this.dataset.phone;
+            // Role select
+            var roleSelect = document.getElementById('editRole');
+            for (var i = 0; i < roleSelect.options.length; i++) {
+                roleSelect.options[i].selected = (roleSelect.options[i].value === this.dataset.roleId);
+            }
+            // Division select
+            var divSelect = document.getElementById('editDivision');
+            for (var i = 0; i < divSelect.options.length; i++) {
+                divSelect.options[i].selected = (divSelect.options[i].value === this.dataset.divisionId);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

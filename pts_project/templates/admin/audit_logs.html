@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Audit Logs - Admin{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-clock-history me-2"></i>Audit Logs</h1>
+            <p class="text-muted mb-0">Complete trail of all system activities and security events</p>
+        </div>
+    </div>
+    <span class="badge bg-primary-subtle text-primary px-3 py-2" style="font-size:.9rem;">
+        <i class="bi bi-list-ul me-1"></i>{{ total_logs }} total record{{ total_logs|pluralize }}
+    </span>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1 fw-medium" style="font-size:.85rem;">Action Type</label>
+                <select class="form-select form-select-sm" name="action">
+                    <option value="">All Actions</option>
+                    {% for action in actions %}
+                    <option value="{{ action }}" {% if active_action_filter == action %}selected{% endif %}>{{ action|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1 fw-medium" style="font-size:.85rem;">User</label>
+                <select class="form-select form-select-sm" name="user">
+                    <option value="">All Users</option>
+                    {% for u in users %}
+                    <option value="{{ u.id }}" {% if active_user_filter|stringformat:"s" == u.id|stringformat:"s" %}selected{% endif %}>
+                        {{ u.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1 fw-medium" style="font-size:.85rem;">Date From</label>
+                <input type="date" class="form-control form-control-sm" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1 fw-medium" style="font-size:.85rem;">Date To</label>
+                <input type="date" class="form-control form-control-sm" name="date_to" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+                <a href="{% url 'admin_audit_logs' %}" class="btn btn-outline-secondary btn-sm" title="Clear">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Action legend -->
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <span class="badge act-login px-2 py-1"><i class="bi bi-box-arrow-in-right me-1"></i>Login</span>
+    <span class="badge act-logout px-2 py-1"><i class="bi bi-box-arrow-right me-1"></i>Logout</span>
+    <span class="badge act-create px-2 py-1"><i class="bi bi-plus-circle me-1"></i>Create</span>
+    <span class="badge act-update px-2 py-1"><i class="bi bi-pencil me-1"></i>Update</span>
+    <span class="badge act-delete px-2 py-1"><i class="bi bi-trash me-1"></i>Delete</span>
+    <span class="badge act-other px-2 py-1"><i class="bi bi-info-circle me-1"></i>Other</span>
+</div>
+
+<!-- Logs Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Activity Log</h5>
+        {% if page_obj %}
+        <small class="text-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} &mdash; {{ total_logs }} records</small>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:14%;">Timestamp</th>
+                        <th style="width:18%;">User</th>
+                        <th style="width:12%;">Action</th>
+                        <th>Description</th>
+                        <th style="width:12%;">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>
+                            <div style="font-size:.85rem;">{{ log.created_at|date:"d M Y" }}</div>
+                            <div class="text-muted" style="font-size:.78rem;">{{ log.created_at|date:"H:i:s" }}</div>
+                        </td>
+                        <td>
+                            {% if log.user %}
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="log-avatar">
+                                    {% with parts=log.user.full_name.split %}
+                                        {{ parts.0|slice:":1"|upper }}{% if parts|length > 1 %}{{ parts.1|slice:":1"|upper }}{% endif %}
+                                    {% endwith %}
+                                </div>
+                                <div>
+                                    <div style="font-size:.85rem;font-weight:500;">{{ log.user.full_name }}</div>
+                                    {% if log.user.role %}<div class="text-muted" style="font-size:.75rem;">{{ log.user.role.name }}</div>{% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-cpu me-1"></i>System</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% with act=log.action|lower %}
+                            <span class="badge
+                                {% if act == 'login' %}act-login
+                                {% elif act == 'logout' %}act-logout
+                                {% elif 'create' in act %}act-create
+                                {% elif 'delete' in act %}act-delete
+                                {% elif 'update' in act or 'edit' in act or 'change' in act %}act-update
+                                {% else %}act-other{% endif %}">
+                                {{ log.get_action_display }}
+                            </span>
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <span style="font-size:.85rem;">{{ log.description|default:"—" }}</span>
+                        </td>
+                        <td>
+                            {% if log.ip_address %}
+                            <span class="text-muted font-monospace" style="font-size:.82rem;">{{ log.ip_address }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox" style="font-size:2rem;display:block;"></i>
+                            <span class="mt-2 d-block">No log entries found for the selected filters</span>
+                            <a href="{% url 'admin_audit_logs' %}" class="btn btn-sm btn-outline-secondary mt-2">Clear Filters</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj and page_obj.paginator.num_pages > 1 %}
+    <div class="card-footer d-flex justify-content-between align-items-center py-2">
+        <small class="text-muted">
+            Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ total_logs }}
+        </small>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if active_action_filter %}action={{ active_action_filter }}&{% endif %}{% if active_user_filter %}user={{ active_user_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if active_action_filter %}action={{ active_action_filter }}&{% endif %}{% if active_user_filter %}user={{ active_user_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if active_action_filter %}action={{ active_action_filter }}&{% endif %}{% if active_user_filter %}user={{ active_user_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.next_page_number }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Action badge colours */
+.act-login  { background:#d1e7dd; color:#0f5132; }
+.act-logout { background:#fff3cd; color:#664d03; }
+.act-create { background:#cfe2ff; color:#084298; }
+.act-delete { background:#f8d7da; color:#842029; }
+.act-update { background:#d0f4f7; color:#055160; }
+.act-other  { background:#e9ecef; color:#495057; }
+/* Log avatar */
+.log-avatar { width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:#e7f3ff; border-radius:50%; font-size:.7rem; font-weight:700; color:#0d6efd; flex-shrink:0; }
+</style>
+{% endblock %}

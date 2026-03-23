@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alert Statistics - PTS{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3">
+                <i class="bi bi-graph-up"></i> Alert Statistics
+            </h1>
+            <p class="text-muted">View alert trends and analytics</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary h-100 py-2">
+                <div class="card-body">
+                    <div class="text-primary text-uppercase mb-1 small fw-bold">Total Alerts</div>
+                    <div class="h3 mb-0">{{ total_alerts }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success h-100 py-2">
+                <div class="card-body">
+                    <div class="text-success text-uppercase mb-1 small fw-bold">Resolved</div>
+                    <div class="h3 mb-0">{{ resolved_alerts }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning h-100 py-2">
+                <div class="card-body">
+                    <div class="text-warning text-uppercase mb-1 small fw-bold">Active</div>
+                    <div class="h3 mb-0">{{ active_alerts }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-info h-100 py-2">
+                <div class="card-body">
+                    <div class="text-info text-uppercase mb-1 small fw-bold">Resolution Rate</div>
+                    <div class="h3 mb-0">
+                        {% if total_alerts %}
+                            {{ resolution_rate|floatformat:0 }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts by Type -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Alerts by Type</h5>
+                </div>
+                <div class="card-body">
+                    {% if alerts_by_type %}
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Count</th>
+                                        <th>Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in alerts_by_type %}
+                                        <tr>
+                                            <td><strong>{{ item.alert_type|upper }}</strong></td>
+                                            <td>{{ item.count }}</td>
+                                            <td>
+                                                {% widthratio item.count total_alerts 100 %}%
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No alerts data</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Alerts by Severity -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Alerts by Severity</h5>
+                </div>
+                <div class="card-body">
+                    {% if alerts_by_severity %}
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Severity</th>
+                                        <th>Count</th>
+                                        <th>Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in alerts_by_severity %}
+                                        <tr>
+                                            <td>
+                                                {% if item.severity == 'critical' %}
+                                                    <span class="badge bg-danger">Critical</span>
+                                                {% elif item.severity == 'warning' %}
+                                                    <span class="badge bg-warning">Warning</span>
+                                                {% else %}
+                                                    <span class="badge bg-info">Info</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ item.count }}</td>
+                                            <td>
+                                                {% widthratio item.count total_alerts 100 %}%
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No alerts data</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Alerts -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Alerts (Last 10)</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_alerts %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Submission</th>
+                                        <th>Title</th>
+                                        <th>Type</th>
+                                        <th>Severity</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for alert in recent_alerts %}
+                                        <tr>
+                                            <td>{{ alert.created_at|date:"M d, Y H:i" }}</td>
+                                            <td>
+                                                <a href="{% url 'procurement:submission_detail' alert.submission.id %}">
+                                                    {{ alert.submission.tracking_reference }}
+                                                </a>
+                                            </td>
+                                            <td>{{ alert.title }}</td>
+                                            <td><span class="badge bg-secondary">{{ alert.get_alert_type_display }}</span></td>
+                                            <td>
+                                                {% if alert.severity == 'critical' %}
+                                                    <span class="badge bg-danger">Critical</span>
+                                                {% elif alert.severity == 'warning' %}
+                                                    <span class="badge bg-warning">Warning</span>
+                                                {% else %}
+                                                    <span class="badge bg-info">Info</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if alert.status == 'active' %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% elif alert.status == 'acknowledged' %}
+                                                    <span class="badge bg-warning">Acknowledged</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Resolved</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted p-3">No recent alerts</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Most Alerted Submissions -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Most Alerted Submissions (Top 10)</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if most_alerted %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Submission</th>
+                                        <th>Item Name</th>
+                                        <th>Division</th>
+                                        <th>Status</th>
+                                        <th>Alert Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for submission in most_alerted %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'procurement:submission_detail' submission.id %}">
+                                                    <strong>{{ submission.tracking_reference }}</strong>
+                                                </a>
+                                            </td>
+                                            <td>{{ submission.item_name }}</td>
+                                            <td>{{ submission.division.name }}</td>
+                                            <td><span class="badge bg-secondary">{{ submission.status }}</span></td>
+                                            <td>
+                                                <span class="badge bg-danger">{{ submission.alert_count }} alerts</span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted p-3">No submissions with alerts</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary {
+        border-left: 4px solid #007bff !important;
+    }
+    .border-left-success {
+        border-left: 4px solid #28a745 !important;
+    }
+    .border-left-warning {
+        border-left: 4px solid #ffc107 !important;
+    }
+    .border-left-info {
+        border-left: 4px solid #17a2b8 !important;
+    }
+</style>
+
+<!-- Custom filters for division and widthratio -->
+{% load static %}
+<script>
+// This would typically be implemented as custom template filters in Django
+</script>
+{% endblock %}

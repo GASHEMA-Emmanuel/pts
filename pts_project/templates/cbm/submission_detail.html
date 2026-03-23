@@ -1,0 +1,656 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Submission Details - {{ submission.tracking_reference }}{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-file-earmark-text me-2"></i>Submission Details</h1>
+            <p>{{ submission.tracking_reference }} - {{ submission.item_name }}</p>
+        </div>
+    </div>
+    <a href="{% url 'cbm_submissions' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Submissions
+    </a>
+</div>
+
+<!-- Submission Tracker (Stages 1-3) -->
+<div class="card mb-3">
+    <div class="card-body p-4">
+        <h5 class="mb-1 fw-bold"><i class="bi bi-send"></i> Submission Tracker</h5>
+        <p class="text-muted small mb-4">Tracks the submission from call issuance through procurement review.</p>
+        <div class="workflow-tracker">
+            <div class="workflow-stages">
+                {% for stage in submission_workflow_viz %}
+                <div class="workflow-stage">
+                    {% if stage.approval_date %}
+                    <div class="stage-approval-date">{{ stage.approval_date|date:"m/d/y" }}</div>
+                    {% endif %}
+                    <div class="stage-indicator {% if stage.completed %}completed{% elif stage.current %}current{% else %}pending{% endif %}">
+                        <div class="stage-number">{{ forloop.counter }}</div>
+                        {% if stage.completed %}<i class="bi bi-check-circle-fill"></i>{% elif stage.current %}<i class="bi bi-circle-fill"></i>{% else %}<i class="bi bi-circle"></i>{% endif %}
+                    </div>
+                    <div class="stage-label">{{ stage.name }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Compiled Document Tracker is a separate independent process managed by the Procurement Team -->
+
+<style>
+.workflow-stages {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    padding: 20px 0;
+}
+
+.workflow-stages::before {
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 5%;
+    right: 5%;
+    height: 2px;
+    background: linear-gradient(to right, #ddd 0%, #ddd 50%, transparent 50%, transparent 100%);
+    z-index: 0;
+}
+
+.workflow-stage {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.stage-approval-date {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #0d6efd;
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+}
+
+.stage-indicator {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: white;
+    border: 2px solid #ddd;
+    transition: all 0.3s ease;
+}
+
+.stage-indicator.pending {
+    background: #f8f9fa;
+    border-color: #ddd;
+    color: #999;
+}
+
+.stage-indicator.current {
+    background: #e7f3ff;
+    border-color: #0d6efd;
+    color: #0d6efd;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+}
+
+.stage-indicator.completed {
+    background: #d1e7dd;
+    border-color: #198754;
+    color: #198754;
+}
+
+.stage-indicator i {
+    font-size: 24px;
+}
+
+.stage-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.stage-label {
+    font-size: 0.85rem;
+    color: #666;
+    max-width: 100px;
+    word-wrap: break-word;
+    margin: 0 auto;
+}
+
+.workflow-stage:first-child .stage-indicator,
+.workflow-stage:last-child .stage-indicator {
+    position: relative;
+    z-index: 1;
+}
+</style>
+<!-- Timeline Status Card (visible from Step 7 - CBM Review TD onwards) -->
+{% if submission.current_stage.order >= 7 and submission.current_stage_deadline %}
+<div class="row mb-4">
+    <div class="col-lg-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header {% if submission.timeline_status == 'expired' %}bg-danger{% elif submission.timeline_status == 'approaching' %}bg-warning{% elif submission.timeline_status == 'pending' %}bg-info{% else %}bg-secondary{% endif %} text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Timeline Status
+                    </h5>
+                    {% if submission.timeline_status == 'expired' %}
+                        <span class="badge bg-light text-danger">OVERDUE</span>
+                    {% elif submission.timeline_status == 'approaching' %}
+                        <span class="badge bg-light text-warning">APPROACHING</span>
+                    {% elif submission.timeline_status == 'pending' %}
+                        <span class="badge bg-light text-info">ON TRACK</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if submission.current_stage_deadline %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6 class="text-muted">Procurement Method</h6>
+                            <p><strong>{{ submission.procurement_method|default:"Not selected" }}</strong></p>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-muted">Current Stage</h6>
+                            <p><strong>{{ submission.current_stage.name }}</strong></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6 class="text-muted">Deadline</h6>
+                            <p><strong>{{ submission.current_stage_deadline|date:"d M Y, H:i" }}</strong></p>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-muted">Days Remaining</h6>
+                            <p>
+                                {% if submission.timeline_days_remaining %}
+                                    <strong class="{% if submission.timeline_days_remaining > 7 %}text-success{% elif submission.timeline_days_remaining > 3 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ submission.timeline_days_remaining }} days
+                                    </strong>
+                                {% else %}
+                                    <span class="text-danger">Overdue</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Timeline Progress Bar -->
+                {% if submission.current_stage_deadline and submission.current_stage %}
+                <div class="mt-3">
+                    <small class="text-muted">Timeline Progress (Days Used)</small>
+                    <div class="progress" style="height: 20px;">
+                        <div 
+                            class="progress-bar {% if submission.is_timeline_expired %}bg-danger{% elif submission.timeline_status == 'approaching' %}bg-warning{% else %}bg-info{% endif %}" 
+                            role="progressbar" 
+                            style="width: {{ submission.timeline_progress_percentage }}%"
+                            aria-valuenow="{{ submission.timeline_progress_percentage }}" aria-valuemin="0" aria-valuemax="100"
+                        >{{ submission.timeline_progress_percentage }}%</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% else %}
+                <p class="text-muted mb-0">No timeline set for current stage</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+<!-- Current Stage Info & Progress -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Current Stage</h6>
+                <h4 class="mb-3">
+                    <span class="badge bg-primary">{{ submission.status }}</span>
+                </h4>
+                
+                <div class="mt-3">
+                    <small class="text-muted d-block">Started:</small>
+                    <p class="mb-2">{{ submission.created_at|date:"M d, Y" }}</p>
+                    
+                    <small class="text-muted d-block">Expected Completion:</small>
+                    <p class="mb-2">{{ submission.call.end_date|date:"M d, Y" }}</p>
+                    
+                    <small class="text-muted d-block">Days Elapsed:</small>
+                    <p class="mb-0"><strong>{{ days_elapsed }} days</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Progress</h6>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Overall Progress:</span>
+                        <strong>{{ progress_percentage }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 25px;">
+                        <div 
+                            class="progress-bar bg-success" 
+                            role="progressbar" 
+                            style="width: {{ progress_percentage }}%" 
+                            aria-valuenow="{{ progress_percentage }}" 
+                            aria-valuemin="0" 
+                            aria-valuemax="100"
+                        ></div>
+                    </div>
+                </div>
+                
+                <small class="text-muted d-block">Days Remaining:</small>
+                <p class="mb-0">
+                    <strong class="{% if days_remaining > 7 %}text-success{% elif days_remaining > 3 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ days_remaining }} days
+                    </strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Submission Details -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-info-circle"></i> Submission Details</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label text-muted small">Item Name</label>
+                <p class="mb-3"><strong>{{ submission.item_name }}</strong></p>
+                
+                <label class="form-label text-muted small">Tracking Reference</label>
+                <p class="mb-3"><code>{{ submission.tracking_reference }}</code></p>
+                
+                <label class="form-label text-muted small">Division</label>
+                <p class="mb-3"><strong>{{ submission.division.name }}</strong></p>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <label class="form-label text-muted small">Quantity</label>
+                <p class="mb-3"><strong>{{ submission.quantity }} {{ submission.unit_of_measure }}</strong></p>
+                
+                <label class="form-label text-muted small">Number of Procurement Items</label>
+                <p class="mb-3"><strong class="text-primary">{{ submission.number_of_procurement_items }}</strong></p>
+                
+                <label class="form-label text-muted small">Submission Date</label>
+                <p class="mb-0"><strong>{{ submission.submitted_at|date:"d M Y" }}</strong></p>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <label class="form-label text-muted small">Description</label>
+        <p class="mb-0">{{ submission.item_description|default:"No description provided" }}</p>
+    </div>
+</div>
+
+<!-- Submission Source -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-collection"></i> Submission Source</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Procurement Call</label>
+                <p class="mb-3"><strong>{{ submission.call.title }}</strong></p>
+                
+                <label class="form-label text-muted small">Call Reference</label>
+                <p class="mb-0"><code>{{ submission.call.reference_number }}</code></p>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label text-muted small">Submitted By</label>
+                <p class="mb-3"><strong>{{ submission.submitted_by.full_name|default:submission.submitted_by.email }}</strong></p>
+                
+                <label class="form-label text-muted small">Submitted At</label>
+                <p class="mb-0"><small class="text-muted">{{ submission.submitted_at|date:"M d, Y H:i" }}</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Action Buttons -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-lightning-fill"></i> Actions</h5>
+    </div>
+    <div class="card-body">
+        <div class="d-flex gap-2 flex-wrap">
+            {% if submission.status == 'Review of Procurement Draft' or submission.status == 'CBM Review' or submission.status == 'CBM Review TD' or submission.status == 'CBM Approval' or submission.status == 'Legal Review' or submission.status == 'Returned' %}
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
+                <i class="bi bi-check-circle"></i> Approve
+            </button>
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#clarificationModal">
+                <i class="bi bi-chat-dots"></i> Request Clarification
+            </button>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                <i class="bi bi-x-circle"></i> Reject
+            </button>
+            {% elif submission.status == 'Awarded' %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#publishModal">
+                <i class="bi bi-cloud-upload"></i> Publish to Umucyo
+            </button>
+            {% else %}
+            <span class="text-muted">No actions available for status: <strong>{{ submission.status }}</strong></span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<!-- Workflow History Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-clock-history"></i> Workflow History</h5>
+    </div>
+    <div class="card-body">
+        {% if workflow_history %}
+            <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                {% for history in workflow_history %}
+                    <div style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                        <div style="color: #666;">
+                            <strong style="color: #333;">[{{ history.created_at|date:"Y-m-d H:i:s" }}]</strong>
+                            <strong style="color: #0d6efd;">{{ history.action_by.full_name|default:history.action_by.email }}</strong>
+                            - Moved from <strong>{{ history.from_stage.name }}</strong> to <strong>{{ history.to_stage.name }}</strong>
+                            {% if history.approval_date %}
+                                - Approved: {{ history.approval_date|date:"Y-m-d" }}
+                            {% endif %}
+                            {% if history.comments %}
+                                - {{ history.comments }}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted text-center py-3">No workflow history available yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tenders Section (shown when Plan is Published) -->
+{% if submission.status == 'Plan Published' %}
+<div class="card mb-4 border-primary">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Individual Tenders</h5>
+        <a href="{% url 'submission_tender_list' submission.id %}" class="btn btn-light btn-sm">
+            <i class="bi bi-list-ul"></i> View All Tenders
+        </a>
+    </div>
+    <div class="card-body">
+        {% if tenders %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tender Number</th>
+                        <th>Title</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tender in tenders %}
+                    <tr>
+                        <td class="fw-semibold">{{ tender.tender_number }}</td>
+                        <td>{{ tender.tender_title|truncatechars:45 }}</td>
+                        <td><span class="badge bg-light text-dark border small">{{ tender.procurement_method }}</span></td>
+                        <td>
+                            {% if tender.is_with_cbm %}
+                                <span class="badge bg-warning text-dark">{{ tender.status }} <i class="bi bi-exclamation-circle"></i></span>
+                            {% elif tender.status == 'Completed' %}
+                                <span class="badge bg-success">{{ tender.status }}</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">{{ tender.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="min-width:100px;">
+                            <div class="progress" style="height:5px;">
+                                <div class="progress-bar" style="width:{{ tender.progress_percentage }}%"></div>
+                            </div>
+                            <small class="text-muted">{{ tender.progress_percentage }}%</small>
+                        </td>
+                        <td>
+                            <a href="{% url 'tender_detail' tender.tender_number %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                                {% if tender.is_with_cbm %}Action Needed{% else %}View{% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-3">No tenders created yet. Procurement team will create individual tenders.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Approve Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'cbm_approve_submission' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">Are you sure you want to approve this submission?</p>
+                    
+                    <!-- Approval Date - shown for Publish Plan and later stages -->
+                    {% if submission.current_stage.order >= 5 %}
+                    <div class="mb-3">
+                        <label class="form-label">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required>
+                        <small class="text-muted">The date when this approval occurred in Umucyo</small>
+                    </div>
+                    {% endif %}
+                    
+                    <label class="form-label">Approval Notes</label>
+                    <textarea class="form-control" name="notes" placeholder="Add approval notes (optional)" rows="3"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Approve
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Clarification Modal -->
+<div class="modal fade" id="clarificationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Request Clarification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'cbm_request_clarification' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <label class="form-label">What clarification do you need?</label>
+                    <textarea class="form-control" name="clarification_request" placeholder="Describe the clarifications or modifications needed" rows="4" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-chat-dots"></i> Send Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'cbm_reject_submission' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <label class="form-label">Rejection Reason</label>
+                    <textarea class="form-control" name="rejection_reason" placeholder="Explain why this submission is being rejected" rows="4" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> Reject
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<style>
+    /* Workflow Timeline Styles */
+    .workflow-svg {
+        width: 100%;
+        height: 100px;
+    }
+    
+    .workflow-line {
+        stroke: #e0e0e0;
+        transition: stroke 0.3s ease;
+    }
+    
+    .workflow-line.completed {
+        stroke: #28a745;
+    }
+    
+    .workflow-line.active {
+        stroke: #007bff;
+    }
+    
+    .stage-circle {
+        fill: #f0f0f0;
+        stroke: #999;
+        transition: all 0.3s ease;
+    }
+    
+    .stage-circle.completed {
+        fill: #28a745;
+        stroke: #28a745;
+    }
+    
+    .stage-circle.current {
+        fill: #007bff;
+        stroke: #007bff;
+        r: 28;
+        filter: drop-shadow(0 0 10px rgba(0, 123, 255, 0.5));
+    }
+    
+    .stage-circle.pending {
+        fill: #f0f0f0;
+        stroke: #ccc;
+    }
+    
+    .stage-icon {
+        font-size: 16px;
+        font-weight: bold;
+    }
+    
+    .check-mark {
+        fill: white;
+    }
+    
+    .current-mark {
+        fill: white;
+    }
+    
+    .pending-mark {
+        fill: #999;
+    }
+    
+    /* Timeline History Styles */
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .timeline-item {
+        display: flex;
+        position: relative;
+        padding-bottom: 30px;
+        padding-left: 60px;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 20px;
+        top: 35px;
+        bottom: -30px;
+        width: 2px;
+        background: #e0e0e0;
+    }
+    
+    .timeline-item.last::before {
+        display: none;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .timeline-badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #007bff;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+    
+    .timeline-content {
+        flex: 1;
+    }
+</style>
+{% endblock %}

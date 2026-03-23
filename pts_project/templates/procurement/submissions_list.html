@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Submissions - Procurement{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 fw-bold">Submissions for Review</h1>
+            <p class="text-muted">Drafts awaiting your approval or clarification request ({{ total_count }} total)</p>
+        </div>
+    </div>
+
+    <!-- Filter and Search Card -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search_query }}" placeholder="Item name, reference...">
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Statuses</option>
+                        <option value="HOD/DM Submit" {% if active_status == 'HOD/DM Submit' %}selected{% endif %}>HOD/DM Submit</option>
+                        <option value="Review of Procurement Draft" {% if active_status == 'Review of Procurement Draft' %}selected{% endif %}>Review of Procurement Draft</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="division" class="form-label">Division</label>
+                    <select class="form-select" id="division" name="division">
+                        <option value="">All Divisions</option>
+                        {% for division in divisions %}
+                            <option value="{{ division.id }}" {% if active_division == division.id|stringformat:"s" %}selected{% endif %}>
+                                {{ division.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="priority" class="form-label">Priority</label>
+                    <select class="form-select" id="priority" name="priority">
+                        <option value="">All Priorities</option>
+                        <option value="Low" {% if active_priority == 'Low' %}selected{% endif %}>Low</option>
+                        <option value="Medium" {% if active_priority == 'Medium' %}selected{% endif %}>Medium</option>
+                        <option value="High" {% if active_priority == 'High' %}selected{% endif %}>High</option>
+                        <option value="Critical" {% if active_priority == 'Critical' %}selected{% endif %}>Critical</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Submissions Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0">Submissions ({{ page_obj.paginator.count }} results)</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if submissions %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 12%">Reference</th>
+                                <th style="width: 20%">Item Name</th>
+                                <th style="width: 12%">Division</th>
+                                <th style="width: 10%">Status</th>
+                                <th style="width: 10%">Priority</th>
+                                <th style="width: 12%">Budget (RWF)</th>
+                                <th style="width: 12%">Submitted</th>
+                                <th style="width: 12%">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted fw-bold">{{ submission.tracking_reference }}</small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ submission.item_name|truncatewords:5 }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ submission.division.name }}</span>
+                                    </td>
+                                    <td>
+                                        {% if submission.status == 'HOD/DM Submit' %}
+                                            <span class="badge bg-warning text-dark">HOD/DM Submit</span>
+                                        {% elif submission.status == 'Review of Procurement Draft' %}
+                                            <span class="badge bg-info">Review of Procurement Draft</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ submission.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if submission.priority == 'Critical' %}
+                                            <span class="badge bg-danger">Critical</span>
+                                        {% elif submission.priority == 'High' %}
+                                            <span class="badge bg-warning text-dark">High</span>
+                                        {% elif submission.priority == 'Medium' %}
+                                            <span class="badge bg-info">Medium</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">Low</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ submission.total_budget|floatformat:0 }}</strong>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ submission.created_at|date:"d M Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'procurement_submission_detail' submission.id %}" 
+                                               class="btn btn-outline-primary" title="View details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% if submission.current_stage.order in actionable_stages %}
+                                                <form method="post" action="{% url 'procurement_approve_draft' submission.id %}" 
+                                                      class="d-inline" onsubmit="return confirm('Approve this submission?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-success" title="Approve draft">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                </form>
+                                                <button class="btn btn-outline-warning" data-bs-toggle="modal" 
+                                                        data-bs-target="#clarificationModal-{{ submission.id }}" title="Request clarification">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Clarification Modal -->
+                                        <div class="modal fade" id="clarificationModal-{{ submission.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Request Clarification</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <form method="post" action="{% url 'procurement_return_draft' submission.id %}">
+                                                        {% csrf_token %}
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label for="clarification-{{ submission.id }}" class="form-label">
+                                                                    Comments/Questions
+                                                                </label>
+                                                                <textarea class="form-control" id="clarification-{{ submission.id }}" 
+                                                                          name="clarification_request" rows="4" required
+                                                                          placeholder="Provide your feedback or questions for the HOD/DM..."></textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                                Cancel
+                                                            </button>
+                                                            <button type="submit" class="btn btn-warning">
+                                                                Send Clarification Request
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-5 text-center">
+                    <i class="bi bi-inbox" style="font-size: 3rem; color: #ddd;"></i>
+                    <p class="text-muted mt-3">No submissions found matching your criteria</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}{% if active_division %}&division={{ active_division }}{% endif %}{% if active_priority %}&priority={{ active_priority }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}{% if active_division %}&division={{ active_division }}{% endif %}{% if active_priority %}&priority={{ active_priority }}{% endif %}">Previous</a>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}{% if active_division %}&division={{ active_division }}{% endif %}{% if active_priority %}&priority={{ active_priority }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}{% if active_division %}&division={{ active_division }}{% endif %}{% if active_priority %}&priority={{ active_priority }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}{% if active_division %}&division={{ active_division }}{% endif %}{% if active_priority %}&priority={{ active_priority }}{% endif %}">Last</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+</div>
+{% endblock %}

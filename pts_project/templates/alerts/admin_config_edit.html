@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Alert Configuration - PTS{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil"></i> Edit Alert Configuration
+                    </h5>
+                    <small class="text-muted">{{ config.get_alert_type_display }}</small>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <!-- Alert Type (Read-only) -->
+                        <div class="mb-3">
+                            <label class="form-label">Alert Type</label>
+                            <input type="text" class="form-control" value="{{ config.get_alert_type_display }}" readonly>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3">{{ config.description }}</textarea>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Thresholds Section -->
+                        <h6 class="mb-3">Alert Thresholds</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Days Before Deadline</label>
+                                <input type="number" class="form-control" name="days_before_deadline" value="{{ config.days_before_deadline }}" min="1">
+                                <small class="text-muted">Alert will trigger this many days before deadline</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Days In Stage (Stalled)</label>
+                                <input type="number" class="form-control" name="days_in_stage" value="{{ config.days_in_stage }}" min="1">
+                                <small class="text-muted">Alert if submission is in a stage for this many days</small>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Alert Settings -->
+                        <h6 class="mb-3">Alert Settings</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="is_enabled" id="is_enabled" {% if config.is_enabled %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_enabled">
+                                        Enable This Alert Type
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="send_email" id="send_email" {% if config.send_email %}checked{% endif %}>
+                                    <label class="form-check-label" for="send_email">
+                                        Send Email Notifications
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="send_notification" id="send_notification" {% if config.send_notification %}checked{% endif %}>
+                                    <label class="form-check-label" for="send_notification">
+                                        Send In-App Notifications
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Recipient Configuration -->
+                        <h6 class="mb-3">Notification Recipients</h6>
+                        <p class="text-muted small">Select which user roles should be notified for this alert type</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="notify_division_head" id="notify_division_head" {% if config.notify_division_head %}checked{% endif %}>
+                                    <label class="form-check-label" for="notify_division_head">
+                                        <i class="bi bi-person"></i> Division Heads
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="notify_cbm" id="notify_cbm" {% if config.notify_cbm %}checked{% endif %}>
+                                    <label class="form-check-label" for="notify_cbm">
+                                        <i class="bi bi-person"></i> CBM
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="notify_procurement_team" id="notify_procurement_team" {% if config.notify_procurement_team %}checked{% endif %}>
+                                    <label class="form-check-label" for="notify_procurement_team">
+                                        <i class="bi bi-people"></i> Procurement Team
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Save Changes
+                            </button>
+                            <a href="{% url 'alerts:admin_config' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

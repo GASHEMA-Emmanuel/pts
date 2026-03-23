@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}System Settings - Admin{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-gear me-2"></i>System Settings</h1>
+            <p class="text-muted mb-0">System configuration, security policies and maintenance controls</p>
+        </div>
+    </div>
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+
+<!-- System Status Banner -->
+<div class="alert alert-success d-flex align-items-center gap-3 mb-4 py-2" role="alert">
+    <i class="bi bi-check-circle-fill fs-5"></i>
+    <div>
+        <strong>All Systems Operational</strong>
+        <span class="text-muted ms-2" style="font-size:.88rem;">Last checked: {% now "d M Y, H:i" %}</span>
+    </div>
+</div>
+
+{% if messages %}
+<div class="mb-3">
+    {% for msg in messages %}
+    <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show py-2" role="alert">
+        {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Settings Sections -->
+{% for section in settings_sections %}
+<div class="card mb-4 settings-section-card">
+    <div class="card-header settings-section-header">
+        <div class="settings-section-icon">
+            <i class="bi {{ section.icon }}"></i>
+        </div>
+        <div>
+            <h5 class="mb-0">{{ section.title }}</h5>
+            <p class="text-muted mb-0" style="font-size:.85rem;">{{ section.description }}</p>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% for item in section.items %}
+        <div class="settings-item">
+            <div class="settings-item-info">
+                <div class="settings-item-name">{{ item.name }}</div>
+                {% if item.description %}<div class="settings-item-desc text-muted">{{ item.description }}</div>{% endif %}
+            </div>
+            <div class="settings-item-value">
+                {% with v=item.value|lower %}
+                {% if v == "enabled" or v == "yes" or v == "operational" or v == "healthy" %}
+                    <span class="badge bg-success-subtle text-success px-3 py-2">
+                        <i class="bi bi-check-circle me-1"></i>{{ item.value }}
+                    </span>
+                {% elif v == "disabled" or v == "no" %}
+                    <span class="badge bg-secondary-subtle text-secondary px-3 py-2">
+                        <i class="bi bi-dash-circle me-1"></i>{{ item.value }}
+                    </span>
+                {% else %}
+                    <span class="settings-value-text">{{ item.value }}</span>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<!-- Quick Links -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Admin Links</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'admin_users' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-people me-1"></i>Manage Users
+                    </a>
+                    <a href="{% url 'admin_divisions' %}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-diagram-3 me-1"></i>Manage Divisions
+                    </a>
+                    <a href="{% url 'admin_audit_logs' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-clock-history me-1"></i>View Audit Logs
+                    </a>
+                    <a href="{% url 'admin_reports' %}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-graph-up me-1"></i>View Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Emergency Actions -->
+<div class="card border-danger">
+    <div class="card-header bg-danger-subtle d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+        <div>
+            <h5 class="mb-0 text-danger">Emergency Actions</h5>
+            <p class="mb-0 text-muted" style="font-size:.82rem;">Use these actions with caution — they affect the entire platform</p>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
+                <div class="emergency-action-card">
+                    <div class="ea-icon bg-warning-subtle text-warning">
+                        <i class="bi bi-wrench-adjustable"></i>
+                    </div>
+                    <h6>Maintenance Mode</h6>
+                    <p class="text-muted">Put system in maintenance mode, blocking user access</p>
+                    <button class="btn btn-outline-warning btn-sm w-100"
+                        onclick="return confirm('Enable maintenance mode? All users will be locked out until you disable it.')">
+                        <i class="bi bi-tools me-1"></i>Enable Maintenance
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="emergency-action-card">
+                    <div class="ea-icon bg-info-subtle text-info">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <h6>Clear Cache</h6>
+                    <p class="text-muted">Flush all cached data to reflect latest database changes</p>
+                    <button class="btn btn-outline-info btn-sm w-100"
+                        onclick="return confirm('Clear all system caches?')">
+                        <i class="bi bi-trash me-1"></i>Clear Cache
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="emergency-action-card">
+                    <div class="ea-icon bg-success-subtle text-success">
+                        <i class="bi bi-database-fill-down"></i>
+                    </div>
+                    <h6>Database Backup</h6>
+                    <p class="text-muted">Trigger an immediate backup of the database</p>
+                    <button class="btn btn-outline-success btn-sm w-100"
+                        onclick="return confirm('Start an immediate database backup?')">
+                        <i class="bi bi-download me-1"></i>Create Backup
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="emergency-action-card">
+                    <div class="ea-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-heart-pulse-fill"></i>
+                    </div>
+                    <h6>Health Check</h6>
+                    <p class="text-muted">Run full system diagnostics and review status</p>
+                    <button class="btn btn-outline-primary btn-sm w-100"
+                        onclick="return confirm('Run system health diagnostics?')">
+                        <i class="bi bi-activity me-1"></i>Run Diagnostics
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Settings section */
+.settings-section-card { overflow:hidden; }
+.settings-section-header { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; }
+.settings-section-icon { width:44px; height:44px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:#f0f0f0; font-size:1.25rem; flex-shrink:0; color:#495057; }
+.settings-item { display:flex; justify-content:space-between; align-items:center; padding:.9rem 1.25rem; border-bottom:1px solid #f8f9fa; }
+.settings-item:last-child { border-bottom:none; }
+.settings-item-info { flex:1; min-width:0; }
+.settings-item-name { font-size:.92rem; font-weight:500; }
+.settings-item-desc { font-size:.8rem; margin-top:.15rem; }
+.settings-item-value { flex-shrink:0; margin-left:1rem; }
+.settings-value-text { font-size:.9rem; font-weight:600; color:#212529; background:#f8f9fa; padding:.35rem .75rem; border-radius:6px; }
+/* Emergency actions */
+.emergency-action-card { background:#f8f9fa; border:1px solid #e9ecef; border-radius:10px; padding:1.25rem; height:100%; display:flex; flex-direction:column; gap:.5rem; }
+.emergency-action-card h6 { margin:0; font-weight:700; font-size:.95rem; }
+.emergency-action-card p { font-size:.82rem; flex:1; margin:0; }
+.ea-icon { width:42px; height:42px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:1.2rem; }
+</style>
+{% endblock %}

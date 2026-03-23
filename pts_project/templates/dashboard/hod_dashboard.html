@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+
+{% block title %}HOD Dashboard - {{ division.name }} - Procurement Tracking System{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-0"><i class="bi bi-building me-2 text-primary"></i>{{ division.name }}</h1>
+            <p class="text-muted mb-0">Head of Department / Division Manager</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'hod_submissions' %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-list-ul me-1"></i> All Submissions
+            </a>
+            <a href="{% url 'hod_create_submission' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> New Submission
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="kpi-card h-100">
+                <div class="kpi-content">
+                    <div class="kpi-label">Active Calls</div>
+                    <div class="kpi-value text-primary">{{ stats.active_calls|default:"0" }}</div>
+                </div>
+                <div class="kpi-icon bg-primary-subtle"><i class="bi bi-megaphone"></i></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="kpi-card h-100">
+                <div class="kpi-content">
+                    <div class="kpi-label">Total Submissions</div>
+                    <div class="kpi-value text-info">{{ stats.total_submissions|default:"0" }}</div>
+                </div>
+                <div class="kpi-icon bg-info-subtle"><i class="bi bi-file-text"></i></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="kpi-card h-100 {% if stats.returned > 0 %}border-danger{% endif %}">
+                <div class="kpi-content">
+                    <div class="kpi-label">Returned / Clarification</div>
+                    <div class="kpi-value {% if stats.returned > 0 %}text-danger{% else %}text-muted{% endif %}">
+                        {{ stats.returned|default:"0" }}
+                    </div>
+                </div>
+                <div class="kpi-icon {% if stats.returned > 0 %}bg-danger-subtle{% else %}bg-secondary-subtle{% endif %}">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="kpi-card h-100">
+                <div class="kpi-content">
+                    <div class="kpi-label">In Progress</div>
+                    <div class="kpi-value text-warning">{{ stats.in_progress|default:"0" }}</div>
+                </div>
+                <div class="kpi-icon bg-warning-subtle"><i class="bi bi-hourglass-split"></i></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="kpi-card h-100">
+                <div class="kpi-content">
+                    <div class="kpi-label">Awarded / Completed</div>
+                    <div class="kpi-value text-success">{{ stats.awarded_completed|default:"0" }}</div>
+                </div>
+                <div class="kpi-icon bg-success-subtle"><i class="bi bi-award"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Urgent: Returned Submissions Banner -->
+    {% if urgent_returned %}
+    <div class="card border-danger mb-4">
+        <div class="card-header bg-danger-subtle d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-danger fw-bold">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>Action Required — Returned Submissions
+            </h6>
+            <span class="badge bg-danger">{{ urgent_returned|length }}</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="d-flex flex-wrap gap-3 p-3">
+                {% for sub in urgent_returned %}
+                <div class="border border-danger rounded p-3" style="min-width:220px;max-width:280px;">
+                    <div class="fw-semibold small mb-1 text-truncate">{{ sub.item_name }}</div>
+                    <div class="text-muted" style="font-size:.75rem;"><code>{{ sub.tracking_reference }}</code> · {{ sub.call_ref }}</div>
+                    <div class="mt-2 d-flex justify-content-between align-items-center">
+                        <span class="badge bg-danger-subtle text-danger">{{ sub.days_since_returned }}d ago</span>
+                        <a href="{% url 'hod_submission_detail' sub.id %}" class="btn btn-sm btn-danger">
+                            <i class="bi bi-pencil-square me-1"></i>Respond
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Row: Active Calls + Pipeline -->
+    <div class="row g-4 mb-4">
+        <!-- Active Calls Cards -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-megaphone me-2 text-primary"></i>Active Procurement Calls</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if active_calls_list %}
+                    <ul class="list-group list-group-flush">
+                        {% for call in active_calls_list %}
+                        <li class="list-group-item py-3 px-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1 me-2">
+                                    <div class="fw-semibold small mb-1">{{ call.title }}</div>
+                                    <div class="text-muted" style="font-size:.75rem;">
+                                        <code>{{ call.reference_number }}</code> · Closes {{ call.end_date|date:"d M Y" }}
+                                    </div>
+                                    <!-- Deadline bar -->
+                                    <div class="mt-2">
+                                        <div class="d-flex justify-content-between mb-1" style="font-size:.7rem;">
+                                            <span class="text-muted">Deadline</span>
+                                            <span class="text-{{ call.deadline_class }} fw-semibold">{{ call.days_remaining }}d left</span>
+                                        </div>
+                                        <div class="progress" style="height:5px;">
+                                            <div class="progress-bar bg-{{ call.deadline_class }}"
+                                                 style="width:{% if call.days_remaining <= 0 %}100{% elif call.days_remaining <= 7 %}80{% elif call.days_remaining <= 14 %}50{% else %}20{% endif %}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end flex-shrink-0">
+                                    {% if call.has_submission %}
+                                        <a href="{% url 'hod_submission_detail' call.submission_id %}" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-eye me-1"></i>View
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'hod_create_submission' %}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-plus me-1"></i>Submit Now
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-3"></i>
+                        <p class="mt-2">No active procurement calls</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Submissions Pipeline Visual -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-steps me-2 text-info"></i>Submissions Pipeline</h5>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center">
+                    {% with total=stats.total_submissions %}
+                    <div class="d-flex flex-column gap-3">
+                        <!-- Draft -->
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:110px;font-size:.8rem;" class="text-muted text-end">Draft</div>
+                            <div class="flex-grow-1">
+                                <div class="progress" style="height:18px;">
+                                    <div class="progress-bar bg-secondary" style="width:{% if total > 0 %}{% widthratio pipeline.draft total 100 %}{% else %}0{% endif %}%;min-width:{% if pipeline.draft > 0 %}2{% else %}0{% endif %}%;">
+                                        {% if pipeline.draft > 0 %}{{ pipeline.draft }}{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="width:30px;font-size:.85rem;" class="fw-bold text-secondary">{{ pipeline.draft }}</div>
+                        </div>
+                        <!-- Submitted -->
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:110px;font-size:.8rem;" class="text-muted text-end">Submitted</div>
+                            <div class="flex-grow-1">
+                                <div class="progress" style="height:18px;">
+                                    <div class="progress-bar bg-info" style="width:{% if total > 0 %}{% widthratio pipeline.submitted total 100 %}{% else %}0{% endif %}%;min-width:{% if pipeline.submitted > 0 %}2{% else %}0{% endif %}%;">
+                                        {% if pipeline.submitted > 0 %}{{ pipeline.submitted }}{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="width:30px;font-size:.85rem;" class="fw-bold text-info">{{ pipeline.submitted }}</div>
+                        </div>
+                        <!-- Under Review -->
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:110px;font-size:.8rem;" class="text-muted text-end">Under Review</div>
+                            <div class="flex-grow-1">
+                                <div class="progress" style="height:18px;">
+                                    <div class="progress-bar bg-warning" style="width:{% if total > 0 %}{% widthratio pipeline.review total 100 %}{% else %}0{% endif %}%;min-width:{% if pipeline.review > 0 %}2{% else %}0{% endif %}%;">
+                                        {% if pipeline.review > 0 %}{{ pipeline.review }}{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="width:30px;font-size:.85rem;" class="fw-bold text-warning">{{ pipeline.review }}</div>
+                        </div>
+                        <!-- Tender Stage -->
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:110px;font-size:.8rem;" class="text-muted text-end">Tender Stage</div>
+                            <div class="flex-grow-1">
+                                <div class="progress" style="height:18px;">
+                                    <div class="progress-bar bg-primary" style="width:{% if total > 0 %}{% widthratio pipeline.tender total 100 %}{% else %}0{% endif %}%;min-width:{% if pipeline.tender > 0 %}2{% else %}0{% endif %}%;">
+                                        {% if pipeline.tender > 0 %}{{ pipeline.tender }}{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="width:30px;font-size:.85rem;" class="fw-bold text-primary">{{ pipeline.tender }}</div>
+                        </div>
+                        <!-- Awarded -->
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width:110px;font-size:.8rem;" class="text-muted text-end">Awarded</div>
+                            <div class="flex-grow-1">
+                                <div class="progress" style="height:18px;">
+                                    <div class="progress-bar bg-success" style="width:{% if total > 0 %}{% widthratio pipeline.awarded total 100 %}{% else %}0{% endif %}%;min-width:{% if pipeline.awarded > 0 %}2{% else %}0{% endif %}%;">
+                                        {% if pipeline.awarded > 0 %}{{ pipeline.awarded }}{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="width:30px;font-size:.85rem;" class="fw-bold text-success">{{ pipeline.awarded }}</div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Total Budget Submitted</div>
+                    <div class="fw-bold fs-5 text-primary">
+                        {% if budget_total %}RWF {{ budget_total|floatformat:0 }}{% else %}—{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Budget In Progress / Review</div>
+                    <div class="fw-bold fs-5 text-warning">
+                        {% if budget_submitted %}RWF {{ budget_submitted|floatformat:0 }}{% else %}—{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Budget Awarded / Completed</div>
+                    <div class="fw-bold fs-5 text-success">
+                        {% if budget_awarded %}RWF {{ budget_awarded|floatformat:0 }}{% else %}—{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Submissions Table + Notifications -->
+    <div class="row g-4 mb-4">
+        <!-- Submissions Table -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Submissions</h5>
+                    <a href="{% url 'hod_submissions' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_submissions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Item</th>
+                                    <th class="text-end">Budget (RWF)</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Days</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub in recent_submissions %}
+                                <tr>
+                                    <td><code class="small">{{ sub.tracking_reference }}</code></td>
+                                    <td class="fw-semibold">{{ sub.item_name|truncatechars:35 }}</td>
+                                    <td class="text-end">{{ sub.total_budget|floatformat:0 }}</td>
+                                    <td>
+                                        {% if sub.status == 'Returned' %}
+                                            <span class="badge bg-danger">{{ sub.status }}</span>
+                                        {% elif sub.status in 'Awarded,Completed' %}
+                                            <span class="badge bg-success">{{ sub.status }}</span>
+                                        {% elif 'CBM' in sub.status %}
+                                            <span class="badge bg-warning text-dark">{{ sub.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">{{ sub.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <small class="text-muted">{{ sub.days_at_stage }}d</small>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'hod_submission_detail' sub.id %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-inbox fs-1"></i>
+                        <p class="mt-2">No submissions yet. <a href="{% url 'hod_create_submission' %}">Create one</a></p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-bell me-2"></i>Notifications</h5>
+                    {% if unread_count > 0 %}<span class="badge bg-danger">{{ unread_count }}</span>{% endif %}
+                </div>
+                <div class="card-body p-0" style="max-height:400px;overflow-y:auto;">
+                    {% if unread_notifications %}
+                    <ul class="list-group list-group-flush">
+                        {% for n in unread_notifications %}
+                        <li class="list-group-item py-2 px-3">
+                            <a href="{{ n.action_url }}" class="text-decoration-none text-dark">
+                                <div class="small fw-semibold">{{ n.title }}</div>
+                                <div class="text-muted" style="font-size:.75rem;">{{ n.message|truncatewords:10 }}</div>
+                                <div class="text-muted" style="font-size:.7rem;">{{ n.created_at|timesince }} ago</div>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-bell-slash fs-3"></i>
+                        <p class="mt-2 small">No new notifications</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+

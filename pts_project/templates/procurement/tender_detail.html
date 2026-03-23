@@ -1,0 +1,715 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tender {{ tender.tender_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tenders_list' %}">Tenders</a></li>
+            {% if tender.submission %}
+            <li class="breadcrumb-item">
+                <a href="{% url 'procurement_submission_detail' tender.submission.id %}">{{ tender.submission.tracking_reference }}</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'submission_tender_list' tender.submission.id %}">Plan Tenders</a>
+            </li>
+            {% endif %}
+            <li class="breadcrumb-item active">{{ tender.tender_number }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">{{ tender.tender_title }}</h1>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="text-muted">Ref: <strong>{{ tender.tender_number }}</strong></span>
+                <span class="text-muted">&bull;</span>
+                {% if tender.status == 'Completed' %}
+                    <span class="badge bg-success fs-6">{{ tender.status }}</span>
+                {% elif tender.status == 'Cancelled' %}
+                    <span class="badge bg-secondary fs-6">{{ tender.status }}</span>
+                {% elif tender.is_with_cbm %}
+                    <span class="badge bg-warning text-dark fs-6">{{ tender.status }}</span>
+                {% elif tender.status == 'Awarded' %}
+                    <span class="badge bg-primary fs-6">{{ tender.status }}</span>
+                {% else %}
+                    <span class="badge bg-info text-dark fs-6">{{ tender.status }}</span>
+                {% endif %}
+                <span class="text-muted">&bull;</span>
+                <span class="text-muted small">{{ tender.progress_percentage }}% complete</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'tenders_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> All Tenders
+            </a>
+            {% if tender.submission %}
+            <a href="{% url 'submission_tender_list' tender.submission.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-files"></i> Plan Tenders
+            </a>
+            {% endif %}
+            {% if tender.umucyo_link %}
+            <a href="{{ tender.umucyo_link }}" target="_blank" class="btn btn-outline-primary">
+                <i class="bi bi-box-arrow-up-right"></i> Umucyo
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- LEFT: Tender Info + Actions -->
+        <div class="col-lg-4">
+
+            <!-- Tender Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-info-circle"></i> Tender Details</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <dt class="text-muted small">Tender Number</dt>
+                        <dd class="fw-semibold">{{ tender.tender_number }}</dd>
+
+                        <dt class="text-muted small">Tender Title</dt>
+                        <dd>{{ tender.tender_title }}</dd>
+
+                        <dt class="text-muted small">Created By</dt>
+                        <dd>{{ tender.created_by.full_name|default:tender.created_by.email }}</dd>
+
+                        <dt class="text-muted small">Created</dt>
+                        <dd>{{ tender.created_at|date:"d M Y, H:i" }}</dd>
+
+                        <dt class="text-muted small">Last Approval Date</dt>
+                        <dd>{% if tender.approval_date %}{{ tender.approval_date|date:"d M Y" }}{% else %}<span class="text-muted">—</span>{% endif %}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Action Card -->
+            {% if tender.submission.call.call_document %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-paperclip"></i> Procurement Call Document</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 p-2 rounded border bg-light">
+                        <i class="bi bi-file-earmark-text fs-4 text-primary flex-shrink-0"></i>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="small fw-semibold text-truncate" title="{{ tender.submission.call.call_document.name|slice:'26:' }}">
+                                {{ tender.submission.call.call_document.name|slice:"26:" }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                        <button class="btn btn-sm btn-outline-primary flex-fill"
+                                data-bs-toggle="modal" data-bs-target="#tenderDocPreviewModal"
+                                data-doc-url="{{ tender.submission.call.call_document.url }}"
+                                data-doc-name="{{ tender.submission.call.call_document.name|slice:'26:' }}">
+                            <i class="bi bi-eye me-1"></i> Preview
+                        </button>
+                        <a href="{{ tender.submission.call.call_document.url }}" download
+                           class="btn btn-sm btn-outline-secondary flex-fill">
+                            <i class="bi bi-download me-1"></i> Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not tender.status in 'Completed,Cancelled' %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-lightning-charge"></i> Actions</h6>
+                </div>
+                <div class="card-body">
+
+                    {% if can_advance %}
+                    <!-- Procurement Team: advance to next stage -->
+                    <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#advanceModal">
+                        <i class="bi bi-arrow-right-circle"></i>
+                        {% if tender.status == 'Prepare Tender Document' %}
+                            Submit to CBM for TD Review
+                        {% elif tender.status == 'Publication of TD' %}
+                            Open Bidding
+                        {% elif tender.status == 'Bidding' %}
+                            Close Bidding &amp; Start Evaluation
+                        {% elif tender.status == 'Evaluation' %}
+                            Submit for CBM Approval
+                        {% elif tender.status == 'Notify Bidders' %}
+                            Start Contract Negotiation
+                        {% elif tender.status == 'Contract Negotiation' %}
+                            Start Contract Drafting
+                        {% elif tender.status == 'Contract Drafting' %}
+                            Submit for Legal Review
+                        {% elif tender.status == 'Legal Review' %}
+                            Submit for Supplier Approval
+                        {% elif tender.status == 'Supplier Approval' %}
+                            Submit to MINIJUST
+                        {% elif tender.status == 'MINIJUST Legal Review' %}
+                            Award Contract
+                        {% elif tender.status == 'Awarded' %}
+                            Mark as Completed
+                        {% else %}
+                            Advance to {{ next_status }}
+                        {% endif %}
+                    </button>
+                    {% endif %}
+
+                    {% if can_cbm_act %}
+                    <!-- CBM: approve -->
+                    <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#cbmApproveModal">
+                        <i class="bi bi-check-circle"></i>
+                        {% if tender.status == 'CBM Review TD' %}
+                            Approve Tender Document
+                        {% else %}
+                            Approve — Notify Bidders
+                        {% endif %}
+                    </button>
+                    <!-- CBM: return -->
+                    <button class="btn btn-outline-warning w-100" data-bs-toggle="modal" data-bs-target="#cbmReturnModal">
+                        <i class="bi bi-arrow-counterclockwise"></i> Return for Revision
+                    </button>
+                    {% endif %}
+
+                    {% if not can_advance and not can_cbm_act %}
+                    <p class="text-muted small mb-0">
+                        No actions available at this stage for your role.
+                        {% if tender.is_with_cbm %}
+                            <br>Waiting for CBM review.
+                        {% endif %}
+                    </p>
+                    {% endif %}
+
+                </div>
+            </div>
+            {% else %}
+            <div class="alert {% if tender.status == 'Completed' %}alert-success{% else %}alert-secondary{% endif %} mb-4">
+                <i class="bi {% if tender.status == 'Completed' %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} me-2"></i>
+                Tender is <strong>{{ tender.status }}</strong>.
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- RIGHT: Stage Tracker + History -->
+        <div class="col-lg-8">
+
+            <!-- Stage Progress Tracker -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0 fw-semibold"><i class="bi bi-diagram-3"></i> Tender Workflow Progress</h6>
+                        <span class="badge bg-primary">Stage {{ tender.stage_number }}/14</span>
+                    </div>
+
+                    <div class="tender-workflow-tracker">
+                        <div class="tender-workflow-stages">
+                            {% for stage in stages %}
+                            <div class="tender-workflow-stage">
+                                {% if stage.date_label %}
+                                <div class="tender-stage-date">{{ stage.date_label|date:"m/d/y" }}</div>
+                                {% else %}
+                                <div class="tender-stage-date">&nbsp;</div>
+                                {% endif %}
+                                <div class="tender-stage-indicator {% if stage.is_completed %}completed{% elif stage.is_current %}current{% else %}pending{% endif %}">
+                                    {% if stage.is_completed %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% elif stage.is_current %}
+                                        <i class="bi bi-circle-fill" style="font-size:10px;"></i>
+                                    {% else %}
+                                        <span class="tender-stage-num">{{ stage.step }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="tender-stage-label">{{ stage.name }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <style>
+                    .tender-workflow-tracker { overflow-x: auto; padding: 4px 0 8px; }
+                    .tender-workflow-stages {
+                        display: flex;
+                        align-items: flex-start;
+                        position: relative;
+                        padding: 18px 0 4px;
+                        min-width: 900px;
+                    }
+                    .tender-workflow-stages::before {
+                        content: '';
+                        position: absolute;
+                        top: 36px;
+                        left: 2.5%;
+                        right: 2.5%;
+                        height: 2px;
+                        background: #dee2e6;
+                        z-index: 0;
+                    }
+                    .tender-workflow-stage {
+                        flex: 1;
+                        text-align: center;
+                        position: relative;
+                        z-index: 1;
+                    }
+                    .tender-stage-date {
+                        font-size: 0.7rem;
+                        font-weight: 600;
+                        color: #0d6efd;
+                        margin-bottom: 4px;
+                        letter-spacing: 0.3px;
+                        height: 16px;
+                    }
+                    .tender-stage-indicator {
+                        width: 44px;
+                        height: 44px;
+                        margin: 0 auto 6px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        position: relative;
+                        background: white;
+                        border: 2px solid #dee2e6;
+                        font-size: 1rem;
+                        transition: all 0.2s ease;
+                    }
+                    .tender-stage-indicator.pending  { background: #f8f9fa; border-color: #dee2e6; color: #adb5bd; }
+                    .tender-stage-indicator.current  { background: #e7f3ff; border-color: #0d6efd; color: #0d6efd; box-shadow: 0 0 0 4px rgba(13,110,253,0.12); }
+                    .tender-stage-indicator.completed{ background: #d1e7dd; border-color: #198754; color: #198754; }
+                    .tender-stage-num { font-weight: 700; font-size: 0.8rem; }
+                    .tender-stage-label {
+                        font-size: 0.7rem;
+                        color: #6c757d;
+                        line-height: 1.3;
+                        margin: 0 auto;
+                        max-width: 62px;
+                        word-break: break-word;
+                    }
+                    </style>
+                </div>
+            </div>
+
+            <!-- Procurement Method Timeline -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h6 class="mb-0 fw-semibold">
+                        <i class="bi bi-calendar-range"></i> Timeline &mdash;
+                        <span class="text-primary">{{ tender.procurement_method }}</span>
+                    </h6>
+                    {% if countdown %}
+                    <span class="badge {% if countdown.is_overdue %}bg-danger{% elif countdown.is_warning %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                        <i class="bi bi-alarm me-1"></i>
+                        {% if countdown.is_overdue %}
+                            Overdue by {{ countdown.overdue_days }} day{{ countdown.overdue_days|pluralize }}
+                        {% else %}
+                            {{ countdown.remaining }} day{{ countdown.remaining|pluralize }} remaining
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Stage</th>
+                                <th>Allowed Duration</th>
+                                <th>Progress / Countdown</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in timeline_info %}
+                            <tr class="{% if t.is_active %}table-primary{% endif %}">
+                                <td class="fw-semibold small">
+                                    {% if t.is_active %}<i class="bi bi-play-fill text-primary me-1"></i>{% endif %}
+                                    {{ t.stage }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+                                        {{ t.days }}
+                                    </span>
+                                </td>
+                                <td style="min-width:190px;">
+                                    {% if t.is_active and countdown %}
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="progress flex-grow-1" style="height:8px;" title="{{ countdown.elapsed }} of {{ countdown.allowed_days }} days used">
+                                                <div class="progress-bar
+                                                    {% if countdown.is_overdue %}bg-danger
+                                                    {% elif countdown.is_warning %}bg-warning
+                                                    {% else %}bg-success{% endif %}"
+                                                    style="width:{{ countdown.pct }}%;">
+                                                </div>
+                                            </div>
+                                            <small class="{% if countdown.is_overdue %}text-danger fw-bold{% elif countdown.is_warning %}text-warning fw-semibold{% else %}text-muted{% endif %}" style="white-space:nowrap;">
+                                                {% if countdown.is_overdue %}Overdue!{% else %}{{ countdown.remaining }}d left{% endif %}
+                                            </small>
+                                        </div>
+                                        <div class="text-muted" style="font-size:0.72rem;margin-top:3px;">
+                                            Day {{ countdown.elapsed }} of {{ countdown.allowed_days }} &bull; started {{ countdown.stage_entry_date|date:"d M Y" }}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted small">{{ t.note }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-clock-history"></i> Activity History</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if history %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Action</th>
+                                    <th>By</th>
+                                    <th>Approval Date</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for h in history %}
+                                <tr>
+                                    <td class="text-muted small">{{ h.created_at|date:"d M Y, H:i" }}</td>
+                                    <td>
+                                        {% if h.from_status %}
+                                            <span class="badge bg-light text-dark border small">{{ h.from_status }}</span>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if h.action == 'approve' %}bg-success
+                                            {% elif h.action == 'return' %}bg-warning text-dark
+                                            {% elif h.action == 'cancel' %}bg-secondary
+                                            {% else %}bg-primary{% endif %}
+                                            small">
+                                            {{ h.to_status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if h.action == 'approve' %}bg-success
+                                            {% elif h.action == 'return' %}bg-warning text-dark
+                                            {% elif h.action == 'cancel' %}bg-secondary
+                                            {% elif h.action == 'create' %}bg-info text-dark
+                                            {% else %}bg-light text-dark border{% endif %}
+                                            small">
+                                            {{ h.action|capfirst }}
+                                        </span>
+                                    </td>
+                                    <td class="small">{{ h.action_by.full_name|default:h.action_by.email }}</td>
+                                    <td class="text-muted small">{{ h.approval_date|date:"d M Y"|default:"—" }}</td>
+                                    <td class="text-muted small">{{ h.comments|truncatechars:50 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-clock-history d-block fs-2 mb-2"></i>
+                        No activity recorded yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================
+     MODALS
+====================================================== -->
+
+<!-- Procurement: Advance Stage Modal -->
+{% if can_advance %}
+<div class="modal fade" id="advanceModal" tabindex="-1" aria-labelledby="advanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="advanceModalLabel">
+                    <i class="bi bi-arrow-right-circle"></i> Advance Tender
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'tender_advance' tender.tender_number %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted">
+                        Move tender <strong>{{ tender.tender_number }}</strong> from
+                        <span class="badge bg-info text-dark">{{ tender.status }}</span>
+                        to
+                        <span class="badge bg-success">{{ next_status }}</span>
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Umucyo Approval Date</label>
+                        <input type="date" class="form-control" name="approval_date"
+                               max="{{ today_date|date:'Y-m-d' }}"
+                               {% if prev_approval_date %}min="{{ prev_approval_date|date:'Y-m-d' }}"{% endif %}>
+                        <div class="form-text">
+                            Date this action occurred in Umucyo (if applicable) &mdash; cannot be in the future.
+                            {% if prev_approval_date %}
+                            Must be on or after <strong>{{ prev_approval_date|date:"d M Y" }}</strong> (previous stage date).
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Notes (Optional)</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Add notes about this stage..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> Confirm Advance
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- CBM: Approve Modal -->
+{% if can_cbm_act %}
+<div class="modal fade" id="cbmApproveModal" tabindex="-1" aria-labelledby="cbmApproveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cbmApproveModalLabel">
+                    <i class="bi bi-check-circle"></i> CBM Approval
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'tender_cbm_action' tender.tender_number %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve">
+                <div class="modal-body">
+                    <p class="text-muted">
+                        Approve tender <strong>{{ tender.tender_number }}</strong>.
+                        It will move to <span class="badge bg-success">{{ cbm_next }}</span>.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Umucyo Approval Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="approval_date" required
+                               max="{{ today_date|date:'Y-m-d' }}"
+                               {% if prev_approval_date %}min="{{ prev_approval_date|date:'Y-m-d' }}"{% endif %}>
+                        <div class="form-text">
+                            Date this was approved in Umucyo &mdash; cannot be in the future.
+                            {% if prev_approval_date %}
+                            Must be on or after <strong>{{ prev_approval_date|date:"d M Y" }}</strong>.
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Notes (Optional)</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Approval notes..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Approve
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- CBM: Return Modal -->
+<div class="modal fade" id="cbmReturnModal" tabindex="-1" aria-labelledby="cbmReturnModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cbmReturnModalLabel">
+                    <i class="bi bi-arrow-counterclockwise"></i> Return for Revision
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'tender_cbm_action' tender.tender_number %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="return">
+                <div class="modal-body">
+                    <p class="text-muted">
+                        Return tender <strong>{{ tender.tender_number }}</strong> to
+                        <span class="badge bg-warning text-dark">{{ cbm_return }}</span> for revision.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Reason for Return <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="notes" rows="4" placeholder="Explain what needs to be revised..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-arrow-counterclockwise"></i> Return for Revision
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if tender.submission.call.call_document %}
+<!-- Tender Document Preview Modal -->
+<div class="modal fade" id="tenderDocPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="tenderDocPreviewTitle">
+                    <i class="bi bi-file-earmark-text me-1"></i> Document Preview
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" style="height:74vh;display:flex;flex-direction:column;">
+                <!-- PDF viewer -->
+                <div id="tdPreview-pdf" style="display:none;flex:1;flex-direction:column;">
+                    <div style="flex:1;overflow-y:auto;background:#666;padding:10px;display:flex;justify-content:center;">
+                        <canvas id="tdPdfCanvas" style="max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.4);"></canvas>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:10px;background:#f8f9fa;border-top:1px solid #dee2e6;flex-shrink:0;">
+                        <button id="tdPdfPrev" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></button>
+                        <span id="tdPdfPageInfo" class="small text-muted" style="min-width:120px;text-align:center;">Page 1 of 1</span>
+                        <button id="tdPdfNext" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </div>
+                <!-- txt / other previewable via iframe -->
+                <div id="tdPreview-iframe" style="display:none;flex:1;">
+                    <iframe id="tdPreviewIframe" style="width:100%;height:100%;border:none;"></iframe>
+                </div>
+                <!-- Cannot preview -->
+                <div id="tdPreview-nopreview" style="display:none;flex:1;align-items:center;justify-content:center;">
+                    <div class="text-center p-4">
+                        <i class="bi bi-file-earmark-x fs-1 text-muted mb-3 d-block"></i>
+                        <p class="text-muted mb-3">This file type cannot be previewed in the browser.</p>
+                        <a id="tdPreviewDownload2" href="{{ tender.submission.call.call_document.url }}" download class="btn btn-primary">
+                            <i class="bi bi-download me-1"></i> Download Document
+                        </a>
+                    </div>
+                </div>
+                <!-- Loading -->
+                <div id="tdPreview-loading" style="flex:1;align-items:center;justify-content:center;display:flex;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <p class="text-muted">Loading document&hellip;</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <a id="tdPreviewDlBtn" href="{{ tender.submission.call.call_document.url }}" download class="btn btn-sm btn-primary">
+                    <i class="bi bi-download me-1"></i> Download
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function () {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    var pdfDoc = null, currentPage = 1;
+    var canvas  = document.getElementById('tdPdfCanvas');
+    var ctx     = canvas ? canvas.getContext('2d') : null;
+    var pageInfo = document.getElementById('tdPdfPageInfo');
+    var prevBtn  = document.getElementById('tdPdfPrev');
+    var nextBtn  = document.getElementById('tdPdfNext');
+
+    function showSection(id) {
+        ['tdPreview-pdf','tdPreview-iframe','tdPreview-nopreview','tdPreview-loading']
+            .forEach(function(s) {
+                var el = document.getElementById(s);
+                if (el) el.style.display = (s === id) ? 'flex' : 'none';
+            });
+    }
+
+    function renderPage(num) {
+        pdfDoc.getPage(num).then(function(page) {
+            var viewport = page.getViewport({ scale: 1.5 });
+            canvas.width  = viewport.width;
+            canvas.height = viewport.height;
+            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function() {
+                currentPage = num;
+                pageInfo.textContent = 'Page ' + num + ' of ' + pdfDoc.numPages;
+                prevBtn.disabled = num <= 1;
+                nextBtn.disabled = num >= pdfDoc.numPages;
+            });
+        });
+    }
+
+    function loadPDF(url) {
+        pdfDoc = null; currentPage = 1;
+        showSection('tdPreview-loading');
+        pdfjsLib.getDocument(url).promise.then(function(doc) {
+            pdfDoc = doc;
+            showSection('tdPreview-pdf');
+            renderPage(1);
+        }).catch(function(e) {
+            console.error('PDF error', e);
+            showSection('tdPreview-nopreview');
+        });
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', function() { if (currentPage > 1) renderPage(currentPage - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function() { if (pdfDoc && currentPage < pdfDoc.numPages) renderPage(currentPage + 1); });
+
+    var modal = document.getElementById('tenderDocPreviewModal');
+    if (modal) {
+        modal.addEventListener('show.bs.modal', function(e) {
+            var btn  = e.relatedTarget;
+            var url  = btn.getAttribute('data-doc-url');
+            var name = btn.getAttribute('data-doc-name');
+            var ext  = (name || '').split('.').pop().toLowerCase();
+
+            document.getElementById('tenderDocPreviewTitle').innerHTML =
+                '<i class="bi bi-file-earmark-text me-1"></i> ' + (name || 'Document');
+            document.getElementById('tdPreviewDlBtn').href = url;
+
+            pdfDoc = null; currentPage = 1;
+            document.getElementById('tdPreviewIframe').src = '';
+            showSection('tdPreview-loading');
+
+            if (ext === 'pdf') {
+                loadPDF(window.location.origin + url);
+            } else if (ext === 'txt') {
+                document.getElementById('tdPreviewIframe').src = url;
+                showSection('tdPreview-iframe');
+            } else {
+                document.getElementById('tdPreviewDownload2').href = url;
+                showSection('tdPreview-nopreview');
+            }
+        });
+        modal.addEventListener('hide.bs.modal', function() {
+            document.getElementById('tdPreviewIframe').src = '';
+            pdfDoc = null;
+        });
+    }
+})();
+</script>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,734 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}CBM Procurement Reports{% endblock %}
+
+{% block extra_css %}
+<style>
+  .kpi-card { border-left: 4px solid transparent; transition: transform .15s; }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-card.kpi-primary   { border-left-color: #0d6efd; }
+  .kpi-card.kpi-success   { border-left-color: #198754; }
+  .kpi-card.kpi-warning   { border-left-color: #ffc107; }
+  .kpi-card.kpi-danger    { border-left-color: #dc3545; }
+  .kpi-card.kpi-info      { border-left-color: #0dcaf0; }
+  .kpi-card.kpi-secondary { border-left-color: #6c757d; }
+  .kpi-card.kpi-purple    { border-left-color: #6f42c1; }
+  .kpi-card.kpi-teal      { border-left-color: #20c997; }
+  .kpi-icon { width: 48px; height: 48px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size: 1.4rem; }
+  .period-badge { background: #e9f3ff; border: 1px solid #b8d4f9; color: #0d6efd; border-radius: 6px; padding: 4px 12px; font-size: .82rem; font-weight: 600; }
+  .filter-bar { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px; }
+  .preset-btn { font-size: .78rem; }
+  .nav-tabs .nav-link { font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- ── Page Header ── -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>CBM Procurement Reports</h1>
+            <p class="text-muted small mb-0">System-wide procurement analytics and performance metrics</p>
+        </div>
+        {% if date_filtered %}
+            <span class="period-badge"><i class="bi bi-calendar-range me-1"></i>
+                {% if date_from %}{{ date_from }}{% else %}Start{% endif %}
+                &nbsp;→&nbsp;
+                {% if date_to %}{{ date_to }}{% else %}Today{% endif %}
+            </span>
+        {% else %}
+            <span class="period-badge"><i class="bi bi-calendar me-1"></i>All Time</span>
+        {% endif %}
+    </div>
+
+    <!-- ── Date Range Filter Bar ── -->
+    <div class="filter-bar p-3 mb-4">
+        <form method="get" class="row g-2 align-items-end" id="filterForm">
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Date From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}" style="width:155px;">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-semibold mb-1">Date To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}" style="width:155px;">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-rbc btn-sm"><i class="bi bi-funnel me-1"></i>Apply</button>
+            </div>
+            {% if date_filtered %}
+            <div class="col-auto">
+                <a href="{% url 'procurement_reports' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle me-1"></i>Clear</a>
+            </div>
+            {% endif %}
+            <div class="col-auto ms-md-3">
+                <span class="text-muted small me-1">Quick:</span>
+                <button type="button" class="btn btn-outline-primary preset-btn me-1" onclick="setPreset(30)">Last 30 Days</button>
+                <button type="button" class="btn btn-outline-primary preset-btn me-1" onclick="setPreset(90)">Last 90 Days</button>
+                <button type="button" class="btn btn-outline-primary preset-btn me-1" onclick="setPreset(180)">Last 6 Months</button>
+                <button type="button" class="btn btn-outline-primary preset-btn" onclick="setPresetYear()">This Year</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- ── Section Tabs ── -->
+    <ul class="nav nav-tabs mb-4" id="reportTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="subs-tab" data-bs-toggle="tab" data-bs-target="#subs-pane" type="button" role="tab">
+                <i class="bi bi-files me-1"></i>Internal Submissions
+                <span class="badge bg-primary ms-1">{{ sub_stats.total }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tenders-tab" data-bs-toggle="tab" data-bs-target="#tenders-pane" type="button" role="tab">
+                <i class="bi bi-people me-1"></i>Tenders
+                <span class="badge bg-secondary ms-1">{{ tender_stats.total }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="contracts-tab" data-bs-toggle="tab" data-bs-target="#contracts-pane" type="button" role="tab">
+                <i class="bi bi-file-earmark-text me-1"></i>Contracts
+                <span class="badge bg-success ms-1">{{ contract_stats.total }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="reportTabsContent">
+
+        <!-- ╔══════════════════════════════════════════════════╗ -->
+        <!-- ║  TAB 1 — INTERNAL SUBMISSIONS                   ║ -->
+        <!-- ╚══════════════════════════════════════════════════╝ -->
+        <div class="tab-pane fade show active" id="subs-pane" role="tabpanel">
+
+            <!-- KPI Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-primary h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-primary bg-opacity-10"><i class="bi bi-files text-primary"></i></div>
+                            <div><div class="text-muted small">Total</div><div class="fs-4 fw-bold">{{ sub_stats.total }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-secondary h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-secondary bg-opacity-10"><i class="bi bi-file text-secondary"></i></div>
+                            <div><div class="text-muted small">Draft</div><div class="fs-4 fw-bold">{{ sub_stats.draft }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-info h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-info bg-opacity-10"><i class="bi bi-send text-info"></i></div>
+                            <div><div class="text-muted small">With Procurement</div><div class="fs-4 fw-bold">{{ sub_stats.with_procurement }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-warning h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-warning bg-opacity-10"><i class="bi bi-hourglass-split text-warning"></i></div>
+                            <div><div class="text-muted small">With CBM</div><div class="fs-4 fw-bold">{{ sub_stats.with_cbm }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-teal h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon" style="background:rgba(32,201,151,.1)"><i class="bi bi-megaphone" style="color:#20c997"></i></div>
+                            <div><div class="text-muted small">Plan Published</div><div class="fs-4 fw-bold">{{ sub_stats.plan_published }}</div><div class="small" style="color:#20c997">{{ sub_stats.plan_published_pct }}%</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-purple h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon" style="background:rgba(111,66,193,.1)"><i class="bi bi-people" style="color:#6f42c1"></i></div>
+                            <div><div class="text-muted small">In Tender</div><div class="fs-4 fw-bold">{{ sub_stats.in_tender }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-success h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-success bg-opacity-10"><i class="bi bi-check2-all text-success"></i></div>
+                            <div><div class="text-muted small">Completed</div><div class="fs-4 fw-bold">{{ sub_stats.completed }}</div><div class="text-success small">{{ sub_stats.completed_pct }}%</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-danger h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-danger bg-opacity-10"><i class="bi bi-arrow-return-left text-danger"></i></div>
+                            <div><div class="text-muted small">Returned</div><div class="fs-4 fw-bold">{{ sub_stats.returned }}</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if stalled_subs > 0 %}
+            <div class="alert alert-warning d-flex align-items-center gap-2 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                <div><strong>{{ stalled_subs }} submission(s)</strong> have been stalled for more than 30 days. Follow up required.</div>
+            </div>
+            {% endif %}
+
+            <!-- Budget + By Division -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-cash-stack text-success"></i>
+                            <h6 class="mb-0 fw-semibold">Budget Overview</h6>
+                        </div>
+                        <div class="card-body">
+                            {% with t=budget_stats.total %}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small">Total Budget</span>
+                                    <strong class="small">RWF {{ budget_stats.total|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="progress" style="height:10px;border-radius:5px;">
+                                    <div class="progress-bar bg-secondary" style="width:100%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-info">In Pipeline</span>
+                                    <strong class="small">RWF {{ budget_stats.in_pipeline|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="progress" style="height:10px;border-radius:5px;">
+                                    {% if t > 0 %}{% widthratio budget_stats.in_pipeline t 100 as ip_pct %}{% endif %}
+                                    <div class="progress-bar bg-info" style="width:{% if t > 0 %}{{ ip_pct }}{% else %}0{% endif %}%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-success">Completed</span>
+                                    <strong class="small">RWF {{ budget_stats.completed|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="progress" style="height:10px;border-radius:5px;">
+                                    {% if t > 0 %}{% widthratio budget_stats.completed t 100 as bc_pct %}{% endif %}
+                                    <div class="progress-bar bg-success" style="width:{% if t > 0 %}{{ bc_pct }}{% else %}0{% endif %}%"></div>
+                                </div>
+                            </div>
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-building text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">Submissions by Division</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Division</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Published</th>
+                                        <th class="text-end">Completed</th>
+                                        <th>Progress</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for div in submissions_by_division %}
+                                    <tr>
+                                        <td class="small fw-semibold">{{ div.division__name|default:"——" }}</td>
+                                        <td class="text-end fw-semibold">{{ div.total }}</td>
+                                        <td class="text-end">{{ div.published }}</td>
+                                        <td class="text-end"><span class="badge bg-success">{{ div.completed }}</span></td>
+                                        <td style="width:90px;">
+                                            {% if div.total > 0 %}
+                                            {% widthratio div.completed div.total 100 as dp %}
+                                            <div class="progress" style="height:6px;"><div class="progress-bar bg-primary" style="width:{{ dp }}%"></div></div>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center text-muted py-3">No data for this period</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- By Priority + Recent Submissions -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-sort-down text-warning"></i>
+                            <h6 class="mb-0 fw-semibold">By Priority</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Priority</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Done</th>
+                                        <th class="text-end">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in submissions_by_priority %}
+                                    <tr>
+                                        <td>{% if p.priority == 'Critical' %}<span class="badge bg-danger">Critical</span>
+                                        {% elif p.priority == 'High' %}<span class="badge bg-warning text-dark">High</span>
+                                        {% elif p.priority == 'Medium' %}<span class="badge bg-info text-dark">Medium</span>
+                                        {% else %}<span class="badge bg-secondary">Low</span>{% endif %}</td>
+                                        <td class="text-end fw-semibold">{{ p.total }}</td>
+                                        <td class="text-end">{{ p.completed }}</td>
+                                        <td class="text-end">{% if p.total > 0 %}{% widthratio p.completed p.total 100 as cp %}<span class="badge {% if cp|add:0 >= 75 %}bg-success{% elif cp|add:0 >= 40 %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ cp }}%</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center text-muted py-3">No data</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-clock-history text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">Recent Submissions</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Reference</th>
+                                        <th>Item</th>
+                                        <th>Division</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Budget</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sub in recent_submissions %}
+                                    <tr>
+                                        <td><a href="{% url 'cbm_submission_detail' sub.id %}" class="text-decoration-none text-primary fw-semibold small">{{ sub.tracking_reference }}</a></td>
+                                        <td class="small">{{ sub.item_name|truncatewords:3 }}</td>
+                                        <td class="small text-muted">{{ sub.division.name|default:"—"|truncatechars:14 }}</td>
+                                        <td>{% if sub.status == 'Draft' %}<span class="badge bg-secondary">Draft</span>
+                                        {% elif sub.status == 'Returned' %}<span class="badge bg-danger">Returned</span>
+                                        {% elif sub.status == 'Rejected' %}<span class="badge bg-dark">Rejected</span>
+                                        {% elif sub.status == 'Completed' %}<span class="badge bg-primary">Completed</span>
+                                        {% elif 'CBM' in sub.status or 'Review' in sub.status %}<span class="badge bg-warning text-dark">{{ sub.status|truncatechars:14 }}</span>
+                                        {% elif 'HOD' in sub.status or 'Submit' in sub.status %}<span class="badge bg-info text-dark">Submitted</span>
+                                        {% elif 'Publish' in sub.status %}<span class="badge bg-success">{{ sub.status|truncatechars:14 }}</span>
+                                        {% else %}<span class="badge bg-light text-dark border">{{ sub.status|truncatechars:12 }}</span>{% endif %}</td>
+                                        <td class="text-end small">{{ sub.total_budget|floatformat:0|intcomma }}</td>
+                                        <td class="small text-muted">{{ sub.created_at|date:"d M Y" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="6" class="text-center text-muted py-3">No submissions in this period</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end #subs-pane -->
+
+        <!-- ╔══════════════════════════════════════════════════╗ -->
+        <!-- ║  TAB 2 — TENDERS                                ║ -->
+        <!-- ╚══════════════════════════════════════════════════╝ -->
+        <div class="tab-pane fade" id="tenders-pane" role="tabpanel">
+
+            <!-- KPI Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-primary h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-primary bg-opacity-10"><i class="bi bi-people text-primary"></i></div>
+                            <div><div class="text-muted small">Total Tenders</div><div class="fs-4 fw-bold">{{ tender_stats.total }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-secondary h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-secondary bg-opacity-10"><i class="bi bi-pencil-square text-secondary"></i></div>
+                            <div><div class="text-muted small">Preparing</div><div class="fs-4 fw-bold">{{ tender_stats.preparing }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-warning h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-warning bg-opacity-10"><i class="bi bi-hourglass-split text-warning"></i></div>
+                            <div><div class="text-muted small">CBM Review</div><div class="fs-4 fw-bold">{{ tender_stats.cbm_review }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-info h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-info bg-opacity-10"><i class="bi bi-megaphone text-info"></i></div>
+                            <div><div class="text-muted small">Published</div><div class="fs-4 fw-bold">{{ tender_stats.published }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-purple h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon" style="background:rgba(111,66,193,.1)"><i class="bi bi-people-fill" style="color:#6f42c1"></i></div>
+                            <div><div class="text-muted small">Bidding</div><div class="fs-4 fw-bold">{{ tender_stats.bidding }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-teal h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon" style="background:rgba(32,201,151,.1)"><i class="bi bi-search" style="color:#20c997"></i></div>
+                            <div><div class="text-muted small">Evaluation</div><div class="fs-4 fw-bold">{{ tender_stats.evaluation }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-warning h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-warning bg-opacity-10"><i class="bi bi-trophy text-warning"></i></div>
+                            <div><div class="text-muted small">Awarded</div><div class="fs-4 fw-bold">{{ tender_stats.awarded }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl">
+                    <div class="card border-0 shadow-sm kpi-card kpi-success h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-success bg-opacity-10"><i class="bi bi-check2-all text-success"></i></div>
+                            <div><div class="text-muted small">Completed</div><div class="fs-4 fw-bold">{{ tender_stats.completed }}</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- By Method + Avg Days + Recent -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-5">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-list-ul text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">By Procurement Method</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Method</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Awarded</th>
+                                        <th class="text-end">Done</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for m in tenders_by_method %}
+                                    <tr>
+                                        <td class="small">{{ m.procurement_method|default:"—"|truncatechars:22 }}</td>
+                                        <td class="text-end fw-semibold">{{ m.total }}</td>
+                                        <td class="text-end">{{ m.awarded }}</td>
+                                        <td class="text-end"><span class="badge bg-success">{{ m.completed }}</span></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center text-muted py-3">No tenders in this period</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-stretch">
+                    <div class="card border-0 shadow-sm text-center w-100">
+                        <div class="card-body d-flex flex-column justify-content-center py-4">
+                            <div class="text-muted small mb-1">Avg Days to Complete</div>
+                            <div class="display-5 fw-bold text-primary">{{ avg_tender_days }}</div>
+                            <div class="text-muted small">days</div>
+                            {% if tender_stats.cancelled > 0 %}
+                            <hr class="my-3">
+                            <div class="text-muted small mb-1">Cancelled</div>
+                            <div class="fs-3 fw-bold text-danger">{{ tender_stats.cancelled }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-clock-history text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">Recent Tenders</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Number</th>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in recent_tenders %}
+                                    <tr>
+                                        <td class="small fw-semibold text-primary">{{ t.tender_number }}</td>
+                                        <td class="small">{{ t.tender_title|truncatewords:4 }}</td>
+                                        <td>{% if t.status == 'Completed' %}<span class="badge bg-success">Completed</span>
+                                        {% elif t.status == 'Awarded' %}<span class="badge bg-warning text-dark">Awarded</span>
+                                        {% elif t.status == 'Bidding' %}<span class="badge bg-primary">Bidding</span>
+                                        {% elif t.status == 'Evaluation' %}<span class="badge bg-info text-dark">Evaluation</span>
+                                        {% elif t.status in 'Cancelled Returned' %}<span class="badge bg-danger">{{ t.status }}</span>
+                                        {% else %}<span class="badge bg-secondary">{{ t.status|truncatechars:14 }}</span>{% endif %}</td>
+                                        <td class="small text-muted">{{ t.created_at|date:"d M Y" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center text-muted py-3">No tenders in this period</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end #tenders-pane -->
+
+        <!-- ╔══════════════════════════════════════════════════╗ -->
+        <!-- ║  TAB 3 — CONTRACTS                              ║ -->
+        <!-- ╚══════════════════════════════════════════════════╝ -->
+        <div class="tab-pane fade" id="contracts-pane" role="tabpanel">
+
+            <!-- KPI Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-sm-4 col-md">
+                    <div class="card border-0 shadow-sm kpi-card kpi-primary h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-primary bg-opacity-10"><i class="bi bi-file-earmark-text text-primary"></i></div>
+                            <div><div class="text-muted small">Total Contracts</div><div class="fs-4 fw-bold">{{ contract_stats.total }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md">
+                    <div class="card border-0 shadow-sm kpi-card kpi-success h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-success bg-opacity-10"><i class="bi bi-patch-check text-success"></i></div>
+                            <div><div class="text-muted small">Active</div><div class="fs-4 fw-bold">{{ contract_stats.active }}</div><div class="text-success small">{{ contract_stats.active_pct }}%</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md">
+                    <div class="card border-0 shadow-sm kpi-card kpi-info h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-info bg-opacity-10"><i class="bi bi-arrow-repeat text-info"></i></div>
+                            <div><div class="text-muted small">Renewed</div><div class="fs-4 fw-bold">{{ contract_stats.renewed }}</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md">
+                    <div class="card border-0 shadow-sm kpi-card kpi-secondary h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-secondary bg-opacity-10"><i class="bi bi-check2-all text-secondary"></i></div>
+                            <div><div class="text-muted small">Completed</div><div class="fs-4 fw-bold">{{ contract_stats.completed }}</div><div class="text-muted small">{{ contract_stats.completed_pct }}%</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md">
+                    <div class="card border-0 shadow-sm kpi-card kpi-danger h-100">
+                        <div class="card-body d-flex align-items-center gap-3 py-3">
+                            <div class="kpi-icon bg-danger bg-opacity-10"><i class="bi bi-x-octagon text-danger"></i></div>
+                            <div><div class="text-muted small">Cancelled</div><div class="fs-4 fw-bold">{{ contract_stats.cancelled }}</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget + By Type + By Division -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-cash-stack text-success"></i>
+                            <h6 class="mb-0 fw-semibold">Contract Budget</h6>
+                        </div>
+                        <div class="card-body">
+                            {% with t=contract_budget_stats.total %}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small">Total</span>
+                                    <strong class="small">RWF {{ contract_budget_stats.total|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="progress" style="height:10px;border-radius:5px;">
+                                    <div class="progress-bar bg-secondary" style="width:100%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-success">Active</span>
+                                    <strong class="small">RWF {{ contract_budget_stats.active|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="progress" style="height:10px;border-radius:5px;">
+                                    {% if t > 0 %}{% widthratio contract_budget_stats.active t 100 as ca_pct %}{% endif %}
+                                    <div class="progress-bar bg-success" style="width:{% if t > 0 %}{{ ca_pct }}{% else %}0{% endif %}%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-primary">Completed</span>
+                                    <strong class="small">RWF {{ contract_budget_stats.completed|floatformat:0|intcomma }}</strong>
+                                </div>
+                                <div class="progress" style="height:10px;border-radius:5px;">
+                                    {% if t > 0 %}{% widthratio contract_budget_stats.completed t 100 as cc_pct %}{% endif %}
+                                    <div class="progress-bar bg-primary" style="width:{% if t > 0 %}{{ cc_pct }}{% else %}0{% endif %}%"></div>
+                                </div>
+                            </div>
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-tags text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">By Contract Type</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Type</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Active</th>
+                                        <th class="text-end">Done</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ct in contracts_by_type %}
+                                    <tr>
+                                        <td class="small fw-semibold">{{ ct.contract_type|default:"—" }}</td>
+                                        <td class="text-end fw-semibold">{{ ct.total }}</td>
+                                        <td class="text-end"><span class="badge bg-success">{{ ct.active }}</span></td>
+                                        <td class="text-end">{{ ct.completed }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center text-muted py-3">No contracts</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                            <i class="bi bi-building text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">By Division</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Division</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Active</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cdiv in contracts_by_division %}
+                                    <tr>
+                                        <td class="small fw-semibold">{{ cdiv.division__name|default:"——"|truncatechars:20 }}</td>
+                                        <td class="text-end fw-semibold">{{ cdiv.total }}</td>
+                                        <td class="text-end"><span class="badge bg-success">{{ cdiv.active }}</span></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="3" class="text-center text-muted py-3">No data</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Contracts -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history text-primary"></i>
+                    <h6 class="mb-0 fw-semibold">Recent Contracts</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Number</th>
+                                <th>Name</th>
+                                <th>Supplier</th>
+                                <th>Type</th>
+                                <th>Division</th>
+                                <th>Status</th>
+                                <th class="text-end">Budget (RWF)</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in recent_contracts %}
+                            <tr>
+                                <td class="small fw-semibold text-primary">{{ c.contract_number }}</td>
+                                <td class="small">{{ c.contract_name|truncatewords:4 }}</td>
+                                <td class="small text-muted">{{ c.supplier_name|default:"—"|truncatechars:16 }}</td>
+                                <td class="small">{{ c.contract_type|default:"—" }}</td>
+                                <td class="small text-muted">{{ c.division.name|default:"—"|truncatechars:14 }}</td>
+                                <td>{% if c.status == 'Active' %}<span class="badge bg-success">Active</span>
+                                {% elif c.status == 'Renewed' %}<span class="badge bg-info text-dark">Renewed</span>
+                                {% elif c.status == 'Completed' %}<span class="badge bg-secondary">Completed</span>
+                                {% elif c.status == 'Cancelled' %}<span class="badge bg-danger">Cancelled</span>
+                                {% else %}<span class="badge bg-light text-dark border">{{ c.status }}</span>{% endif %}</td>
+                                <td class="text-end small">{{ c.contract_budget|floatformat:0|intcomma }}</td>
+                                <td class="small text-muted">{{ c.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="8" class="text-center text-muted py-3">No contracts in this period</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end #contracts-pane -->
+
+    </div><!-- end .tab-content -->
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setPreset(days) {
+    var to = new Date();
+    var from = new Date();
+    from.setDate(from.getDate() - days);
+    document.querySelector('[name=date_from]').value = from.toISOString().split('T')[0];
+    document.querySelector('[name=date_to]').value = to.toISOString().split('T')[0];
+    document.getElementById('filterForm').submit();
+}
+function setPresetYear() {
+    var now = new Date();
+    document.querySelector('[name=date_from]').value = now.getFullYear() + '-01-01';
+    document.querySelector('[name=date_to]').value = now.toISOString().split('T')[0];
+    document.getElementById('filterForm').submit();
+}
+</script>
+{% endblock %}

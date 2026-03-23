@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Procurement Tracking System - RBC{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+    {% if user.is_authenticated %}
+    <!-- Sidebar + Main Content Wrapper -->
+    <div class="wrapper d-flex">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                    <i class="bi bi-box-seam-fill"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="fw-bold">PROCUREMENT</span>
+                    <small class="d-block text-light-emphasis">TRACKING SYSTEM</small>
+                </div>
+            </div>
+            
+            <ul class="sidebar-nav">
+                {% if user.role.name == 'Admin' %}
+                <li class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Admin Panel</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_users' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}">
+                        <i class="bi bi-people"></i>
+                        <span>User Management</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_divisions' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_divisions' %}active{% endif %}">
+                        <i class="bi bi-diagram-3"></i>
+                        <span>Divisions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_system_settings' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_system_settings' %}active{% endif %}">
+                        <i class="bi bi-gear"></i>
+                        <span>System Settings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_audit_logs' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_audit_logs' %}active{% endif %}">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Audit Logs</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'tenders_list' %}" class="nav-link {% if request.resolver_match.url_name in 'tenders_list,tender_detail,submission_tender_list' %}active{% endif %}">
+                        <i class="bi bi-hammer"></i>
+                        <span>Tenders</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'contracts_list' %}" class="nav-link {% if request.resolver_match.url_name in 'contracts_list,contract_detail' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>Contracts</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_reports' %}active{% endif %}">
+                        <i class="bi bi-graph-up"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                {% elif user.role.name == 'CBM' %}
+                <li class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="bi bi-megaphone-fill"></i>
+                        <span>CBM Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'cbm_calls' %}" class="nav-link {% if request.resolver_match.url_name == 'cbm_calls' %}active{% endif %}">
+                        <i class="bi bi-megaphone"></i>
+                        <span>Procurement Calls</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'cbm_submissions' %}" class="nav-link {% if request.resolver_match.url_name == 'cbm_submissions' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>Review Submissions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'tenders_list' %}" class="nav-link {% if request.resolver_match.url_name in 'tenders_list,tender_detail,submission_tender_list' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-ruled"></i>
+                        <span>Tenders</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'contracts_list' %}" class="nav-link {% if request.resolver_match.url_name in 'contracts_list,contract_detail' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-check"></i>
+                        <span>Contracts</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'cbm_compiled_documents' %}" class="nav-link {% if request.resolver_match.url_name == 'cbm_compiled_documents' %}active{% endif %}">
+                        <i class="bi bi-folder2-open"></i>
+                        <span>Compiled Documents</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'procurement_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'procurement_reports' %}active{% endif %}">
+                        <i class="bi bi-bar-chart"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                {% elif user.role.name == 'HOD/DM' %}
+                <li class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'hod_submissions' %}" class="nav-link {% if request.resolver_match.url_name == 'hod_submissions' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>Submissions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'contracts_list' %}" class="nav-link {% if request.resolver_match.url_name in 'contracts_list,contract_detail' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-check"></i>
+                        <span>Contracts</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'hod_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'hod_reports' %}active{% endif %}">
+                        <i class="bi bi-graph-up"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                {% elif user.role.name == 'Procurement Team' %}
+                <li class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'procurement_dashboard' %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'procurement_submissions' %}" class="nav-link {% if request.resolver_match.url_name == 'procurement_submissions' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>Submissions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'procurement_compile_document' %}" class="nav-link {% if request.resolver_match.url_name == 'procurement_compile_document' %}active{% endif %}">
+                        <i class="bi bi-folder2-open"></i>
+                        <span>Compile Document</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'tenders_list' %}" class="nav-link {% if request.resolver_match.url_name in 'tenders_list,tender_detail,submission_tender_list' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-ruled"></i>
+                        <span>Tenders</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'contracts_list' %}" class="nav-link {% if request.resolver_match.url_name in 'contracts_list,contract_detail' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-check"></i>
+                        <span>Contracts</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'procurement_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'procurement_reports' %}active{% endif %}">
+                        <i class="bi bi-graph-up"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                {% else %}
+                
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="bi bi-megaphone"></i>
+                        <span>Procurement Calls</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>Submissions</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="bi bi-journal-text"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                
+                {% endif %}
+                
+                <!-- Alerts (All Authenticated Users) -->
+                <li class="nav-divider"></li>
+                <li class="nav-item">
+                    <a href="{% url 'alerts:dashboard' %}" class="nav-link {% if request.resolver_match.app_names|first == 'alerts' %}active{% endif %} position-relative">
+                        <i class="bi bi-bell-fill"></i>
+                        <span>Alerts</span>
+                        {% if unresolved_alerts_count %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; padding: 0.25rem 0.4rem;">
+                            {{ unresolved_alerts_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                </li>
+                
+                <li class="nav-item mt-auto">
+                    <a href="{% url 'accounts:logout' %}" class="nav-link text-danger">
+                        <i class="bi bi-box-arrow-left"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+                
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div id="content" class="content-wrapper">
+            <!-- Top Navigation Bar -->
+            <nav class="top-navbar">
+                <button class="btn btn-link sidebar-toggle d-lg-none" type="button">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+                
+                <div class="navbar-right ms-auto d-flex align-items-center gap-3">
+                    <!-- Alerts Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-link position-relative" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-bell-fill fs-5"></i>
+                            {% if unresolved_alerts_count %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ unresolved_alerts_count }}
+                            </span>
+                            {% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end notification-dropdown">
+                            <li class="dropdown-header">
+                                <i class="bi bi-bell"></i> Alerts
+                                <a href="{% url 'alerts:dashboard' %}" class="float-end btn btn-sm btn-primary">View All</a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% if unresolved_alerts_count %}
+                                <li><a class="dropdown-item" href="{% url 'alerts:dashboard' %}"><i class="bi bi-exclamation-circle"></i> {{ unresolved_alerts_count }} Active Alerts</a></li>
+                            {% else %}
+                                <li><a class="dropdown-item text-success" href="#"><i class="bi bi-check-circle"></i> No active alerts</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    
+                    <!-- User Profile -->
+                    <div class="dropdown">
+                        <button class="btn btn-link user-dropdown d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                            <div class="user-avatar">
+                                {{ user.full_name|slice:":1"|upper }}
+                            </div>
+                            <div class="user-info d-none d-md-block text-start">
+                                <span class="d-block fw-medium">{{ user.full_name }}</span>
+                                <small class="text-muted">{{ user.role.name|default:"User" }}</small>
+                            </div>
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}"><i class="bi bi-box-arrow-left me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Page Content -->
+            <main class="main-content">
+                {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Footer -->
+            <footer class="main-footer">
+                <p class="mb-0">
+                    &copy; 2026 Rwanda Biomedical Center (RBC). 
+                    <span class="text-muted">Procurement Tracking System v1.0</span>
+                </p>
+            </footer>
+        </div>
+    </div>
+    {% else %}
+    <!-- Unauthenticated Content -->
+    <main class="flex-grow-1">
+        {% block auth_content %}{% endblock %}
+    </main>
+    {% endif %}
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+{% if show_attention_modal and attention_items %}
+{# ═══════════════════════════════════════════════════════════════════
+   ATTENTION MODAL — shown once per login, must be closed to continue
+   Role-specific: content and colours change per user role
+   ═══════════════════════════════════════════════════════════════════ #}
+<style>
+  /* ── Attention modal base ── */
+  #attentionModal .am-header {
+    background: {{ attention_role_gradient }};
+    color: #fff;
+    padding: 1.5rem 1.75rem 1.25rem;
+  }
+  #attentionModal .am-header .am-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,.18);
+    border-radius: 1rem;
+    padding: .25rem .75rem;
+  }
+  #attentionModal .am-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .8rem;
+    font-weight: 600;
+    border-radius: 2rem;
+    padding: .3rem .9rem;
+    border: 2px solid rgba(255,255,255,.5);
+    background: rgba(255,255,255,.15);
+    color: #fff;
+  }
+  /* Fix: constrain modal-content height so body can scroll within it */
+  #attentionModal .am-body    { background: #f1f5f9; }
+  #attentionModal .am-section-header {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #64748b;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: .4rem;
+    margin-bottom: .75rem;
+    margin-top: 1.25rem;
+  }
+  #attentionModal .am-section-header:first-child { margin-top: 0; }
+  #attentionModal .am-section-header .am-count {
+    margin-left: auto;
+    font-size: .7rem;
+    background: #e2e8f0;
+    color: #475569;
+    border-radius: 1rem;
+    padding: .1rem .55rem;
+  }
+  /* Item cards */
+  #attentionModal .am-item {
+    background: #fff;
+    border-radius: .5rem;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #94a3b8;
+    margin-bottom: .5rem;
+    transition: box-shadow .15s;
+  }
+  #attentionModal .am-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  #attentionModal .am-item.sev-critical { border-left-color: #dc2626; }
+  #attentionModal .am-item.sev-warning  { border-left-color: #d97706; }
+  #attentionModal .am-item.sev-info     { border-left-color: #0284c7; }
+  #attentionModal .am-item .am-icon-wrap {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  #attentionModal .am-item.sev-critical .am-icon-wrap { background:#fee2e2; color:#dc2626; }
+  #attentionModal .am-item.sev-warning  .am-icon-wrap { background:#fef3c7; color:#d97706; }
+  #attentionModal .am-item.sev-info     .am-icon-wrap { background:#dbeafe; color:#0284c7; }
+  #attentionModal .am-item .am-title  { font-size: .825rem; font-weight: 600; color: #1e293b; }
+  #attentionModal .am-item .am-detail { font-size: .75rem;  color: #64748b; line-height: 1.4; }
+  #attentionModal .am-item .am-sev-badge {
+    font-size: .65rem; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; border-radius: .25rem; padding: .15rem .45rem;
+    flex-shrink: 0;
+  }
+  .am-sev-badge.sev-critical { background:#fee2e2; color:#dc2626; }
+  .am-sev-badge.sev-warning  { background:#fef3c7; color:#b45309; }
+  .am-sev-badge.sev-info     { background:#dbeafe; color:#0369a1; }
+  /* Nav pills */
+  #attentionModal .am-nav { background: rgba(0,0,0,.15); padding: .6rem 1.75rem; display: flex; gap: .4rem; flex-wrap: wrap; }
+  #attentionModal .am-nav .am-nav-pill {
+    font-size: .75rem; font-weight: 600; color: rgba(255,255,255,.8);
+    background: rgba(255,255,255,.15); border-radius: 2rem;
+    padding: .25rem .8rem; cursor: pointer; border: none;
+    transition: background .15s, color .15s;
+    display: flex; align-items: center; gap: .3rem;
+  }
+  #attentionModal .am-nav .am-nav-pill.active,
+  #attentionModal .am-nav .am-nav-pill:hover {
+    background: rgba(255,255,255,.95); color: #1e293b;
+  }
+  #attentionModal .am-nav .am-nav-pill .am-nav-count {
+    background: rgba(0,0,0,.15); border-radius: 1rem;
+    padding: .05rem .45rem; font-size: .68rem;
+  }
+  #attentionModal .am-nav .am-nav-pill.active .am-nav-count { background: #e2e8f0; }
+  /* Sections (tabs) */
+  #attentionModal .am-section { display: none; }
+  #attentionModal .am-section.active { display: block; }
+  /* Footer */
+  #attentionModal .am-footer {
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: .9rem 1.75rem;
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    width: 100%;
+  }
+  #attentionModal .am-ack-btn {
+    font-weight: 600; font-size: .9rem; padding: .55rem 1.75rem;
+    border-radius: .5rem; border: none; cursor: pointer;
+    display: inline-flex; align-items: center; gap: .5rem;
+    transition: opacity .15s;
+  }
+  #attentionModal .am-ack-btn:hover { opacity: .88; }
+  #attentionModal .am-ack-btn.is-critical { background:#dc2626; color:#fff; }
+  #attentionModal .am-ack-btn.is-warning  { background:#d97706; color:#fff; }
+  #attentionModal .am-ack-btn.is-safe     { background:#16a34a; color:#fff; }
+</style>
+
+<div class="modal fade" id="attentionModal" tabindex="-1"
+     data-bs-backdrop="static" data-bs-keyboard="false"
+     aria-labelledby="attentionModalLabel" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0 rounded-3 p-0">
+      <div style="display:flex;flex-direction:column;height:85vh;">
+
+      {# ─── Branded Header ───────────────────────────────────────── #}
+      <div class="am-header" style="flex:0 0 auto;">
+        <div class="d-flex align-items-start gap-3 flex-wrap">
+
+          {# Role icon circle #}
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width:54px;height:54px;background:rgba(255,255,255,.2);margin-top:2px;">
+            <i class="bi {{ attention_role_icon }} text-white" style="font-size:1.5rem;"></i>
+          </div>
+
+          {# Title block #}
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+              <span class="am-role-badge">
+                <i class="bi bi-person-fill"></i>
+                {{ user.role.name }}
+              </span>
+              <span class="am-role-badge" style="background:rgba(255,255,255,.12);">
+                <i class="bi bi-clock"></i>
+                {% now "d M Y, H:i" %}
+              </span>
+            </div>
+            <h4 class="fw-bold mb-1 text-white" id="attentionModalLabel" style="font-size:1.15rem;">
+              {{ attention_role_label }} — Items Needing Your Attention
+            </h4>
+            <p class="mb-0" style="font-size:.82rem;color:rgba(255,255,255,.82);max-width:640px;">
+              {{ attention_role_message }}
+            </p>
+          </div>
+
+          {# Severity stat pills #}
+          <div class="d-flex gap-2 flex-wrap ms-auto mt-1 align-items-start">
+            {% if attention_critical %}
+            <span class="am-stat-pill" style="border-color:rgba(252,165,165,.7);">
+              <i class="bi bi-exclamation-octagon-fill" style="color:#fca5a5;"></i>
+              {{ attention_critical }} Critical
+            </span>
+            {% endif %}
+            {% if attention_warning %}
+            <span class="am-stat-pill" style="border-color:rgba(253,230,138,.7);">
+              <i class="bi bi-exclamation-triangle-fill" style="color:#fde68a;"></i>
+              {{ attention_warning }} Warning
+            </span>
+            {% endif %}
+            {% if attention_info %}
+            <span class="am-stat-pill" style="border-color:rgba(147,197,253,.7);">
+              <i class="bi bi-info-circle-fill" style="color:#93c5fd;"></i>
+              {{ attention_info }} Info
+            </span>
+            {% endif %}
+            <span class="am-stat-pill" style="border-color:rgba(255,255,255,.4);">
+              <i class="bi bi-list-check"></i>
+              {{ attention_items|length }} Total
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {# ─── Category Navigation Pills ────────────────────────── #}
+      <div class="am-nav" style="flex:0 0 auto;">
+        <button class="am-nav-pill active" data-am-target="all">
+          <i class="bi bi-grid-fill"></i> All
+          <span class="am-nav-count">{{ attention_items|length }}</span>
+        </button>
+        {% if attention_contracts %}
+        <button class="am-nav-pill" data-am-target="contracts">
+          <i class="bi bi-file-earmark-text"></i> Contracts
+          <span class="am-nav-count">{{ attention_contracts|length }}</span>
+        </button>
+        {% endif %}
+        {% if attention_pos %}
+        <button class="am-nav-pill" data-am-target="pos">
+          <i class="bi bi-receipt"></i> Purchase Orders
+          <span class="am-nav-count">{{ attention_pos|length }}</span>
+        </button>
+        {% endif %}
+        {% if attention_procurement %}
+        <button class="am-nav-pill" data-am-target="procurement">
+          <i class="bi bi-megaphone"></i> Procurement Calls
+          <span class="am-nav-count">{{ attention_procurement|length }}</span>
+        </button>
+        {% endif %}
+        {% if attention_tenders %}
+        <button class="am-nav-pill" data-am-target="tenders">
+          <i class="bi bi-file-earmark-ruled"></i> Tenders
+          <span class="am-nav-count">{{ attention_tenders|length }}</span>
+        </button>
+        {% endif %}
+        {% if attention_submissions %}
+        <button class="am-nav-pill" data-am-target="submissions">
+          <i class="bi bi-clipboard2-check"></i> Submissions
+          <span class="am-nav-count">{{ attention_submissions|length }}</span>
+        </button>
+        {% endif %}
+        {% if attention_alerts_list %}
+        <button class="am-nav-pill" data-am-target="alerts">
+          <i class="bi bi-bell"></i> System Alerts
+          <span class="am-nav-count">{{ attention_alerts_list|length }}</span>
+        </button>
+        {% endif %}
+      </div>
+
+      {# ─── Scrollable Body ──────────────────────────────────────── #}
+      <div class="am-body px-3 px-lg-4 py-3" style="flex:1 1 0;min-height:0;overflow-y:auto;">
+
+        {# ── Macro: render one item card ─────────────────────── #}
+        {# (Django templates don't have macros — we repeat the block per category) #}
+
+        {# ══ ALL section (default) ══════════════════════════════ #}
+        <div class="am-section active" id="am-sec-all">
+
+          {% if attention_contracts %}
+          <div class="am-section-header">
+            <i class="bi bi-file-earmark-text" style="color:{{ attention_role_color }};"></i>
+            Contracts
+            <span class="am-count">{{ attention_contracts|length }}</span>
+          </div>
+          {% for item in attention_contracts %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          {% if attention_pos %}
+          <div class="am-section-header">
+            <i class="bi bi-receipt" style="color:{{ attention_role_color }};"></i>
+            Purchase Orders
+            <span class="am-count">{{ attention_pos|length }}</span>
+          </div>
+          {% for item in attention_pos %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          {% if attention_procurement %}
+          <div class="am-section-header">
+            <i class="bi bi-megaphone" style="color:{{ attention_role_color }};"></i>
+            Procurement Calls
+            <span class="am-count">{{ attention_procurement|length }}</span>
+          </div>
+          {% for item in attention_procurement %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          {% if attention_tenders %}
+          <div class="am-section-header">
+            <i class="bi bi-file-earmark-ruled" style="color:{{ attention_role_color }};"></i>
+            Tenders
+            <span class="am-count">{{ attention_tenders|length }}</span>
+          </div>
+          {% for item in attention_tenders %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          {% if attention_submissions %}
+          <div class="am-section-header">
+            <i class="bi bi-clipboard2-check" style="color:{{ attention_role_color }};"></i>
+            Submissions
+            <span class="am-count">{{ attention_submissions|length }}</span>
+          </div>
+          {% for item in attention_submissions %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          {% if attention_alerts_list %}
+          <div class="am-section-header">
+            <i class="bi bi-bell" style="color:{{ attention_role_color }};"></i>
+            System Alerts
+            <span class="am-count">{{ attention_alerts_list|length }}</span>
+          </div>
+          {% for item in attention_alerts_list %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+        </div>{# /#am-sec-all #}
+
+        {# ══ Per-category filtered sections ═══════════════════════ #}
+
+        {% if attention_contracts %}
+        <div class="am-section" id="am-sec-contracts">
+          <div class="am-section-header">
+            <i class="bi bi-file-earmark-text" style="color:{{ attention_role_color }};"></i>
+            Contracts
+            <span class="am-count">{{ attention_contracts|length }}</span>
+          </div>
+          {% for item in attention_contracts %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if attention_pos %}
+        <div class="am-section" id="am-sec-pos">
+          <div class="am-section-header">
+            <i class="bi bi-receipt" style="color:{{ attention_role_color }};"></i>
+            Purchase Orders
+            <span class="am-count">{{ attention_pos|length }}</span>
+          </div>
+          {% for item in attention_pos %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if attention_procurement %}
+        <div class="am-section" id="am-sec-procurement">
+          <div class="am-section-header">
+            <i class="bi bi-megaphone" style="color:{{ attention_role_color }};"></i>
+            Procurement Calls
+            <span class="am-count">{{ attention_procurement|length }}</span>
+          </div>
+          {% for item in attention_procurement %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if attention_tenders %}
+        <div class="am-section" id="am-sec-tenders">
+          <div class="am-section-header">
+            <i class="bi bi-file-earmark-ruled" style="color:{{ attention_role_color }};"></i>
+            Tenders
+            <span class="am-count">{{ attention_tenders|length }}</span>
+          </div>
+          {% for item in attention_tenders %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if attention_submissions %}
+        <div class="am-section" id="am-sec-submissions">
+          <div class="am-section-header">
+            <i class="bi bi-clipboard2-check" style="color:{{ attention_role_color }};"></i>
+            Submissions
+            <span class="am-count">{{ attention_submissions|length }}</span>
+          </div>
+          {% for item in attention_submissions %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if attention_alerts_list %}
+        <div class="am-section" id="am-sec-alerts">
+          <div class="am-section-header">
+            <i class="bi bi-bell" style="color:{{ attention_role_color }};"></i>
+            System Alerts
+            <span class="am-count">{{ attention_alerts_list|length }}</span>
+          </div>
+          {% for item in attention_alerts_list %}
+          <div class="am-item sev-{{ item.severity }} px-3 py-2 d-flex align-items-start gap-3">
+            <div class="am-icon-wrap mt-1"><i class="bi {{ item.icon }} small"></i></div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="am-title">{{ item.title }}</span>
+                <span class="am-sev-badge sev-{{ item.severity }}">{{ item.severity }}</span>
+              </div>
+              <div class="am-detail">{{ item.detail }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </div>{# /am-body #}
+
+      {# ─── Footer ───────────────────────────────────────────── #}
+      <div class="am-footer" style="flex:0 0 auto;">
+        <p class="text-muted mb-0" style="font-size:.8rem;max-width:480px;">
+          <i class="bi bi-info-circle me-1"></i>
+          You can revisit these items at any time from the relevant sections. This checklist resets each time you log in.
+        </p>
+        <button type="button" id="attentionAckBtn"
+                class="am-ack-btn ms-auto {% if attention_critical %}is-critical{% elif attention_warning %}is-warning{% else %}is-safe{% endif %}">
+          <i class="bi bi-check2-all"></i>
+          I Understand — Continue
+          {% if attention_critical %}
+          <span style="background:rgba(255,255,255,.25);border-radius:.3rem;padding:.1rem .45rem;font-size:.75rem;">
+            {{ attention_critical }} critical
+          </span>
+          {% endif %}
+        </button>
+      </div>{# /am-footer #}
+
+      </div>{# /am-wrapper #}
+    </div>{# /modal-content #}
+  </div>{# /modal-dialog #}
+</div>{# /modal #}
+
+<script>
+(function () {
+  'use strict';
+  const DISMISS_URL = "{% url 'alerts:attention_dismiss' %}";
+  const CSRF        = "{{ csrf_token }}";
+
+  /* ── Category tab switching ─────────────────────────────── */
+  function initTabs() {
+    const pills    = document.querySelectorAll('#attentionModal .am-nav-pill');
+    const sections = document.querySelectorAll('#attentionModal .am-section');
+
+    pills.forEach(function (pill) {
+      pill.addEventListener('click', function () {
+        const target = pill.getAttribute('data-am-target');
+        // Update active pill
+        pills.forEach(function (p) { p.classList.remove('active'); });
+        pill.classList.add('active');
+        // Show matching section
+        sections.forEach(function (s) { s.classList.remove('active'); });
+        const show = document.getElementById('am-sec-' + target);
+        if (show) show.classList.add('active');
+      });
+    });
+  }
+
+  /* ── Dismiss button ─────────────────────────────────────── */
+  function initDismiss(modal) {
+    document.getElementById('attentionAckBtn').addEventListener('click', function () {
+      fetch(DISMISS_URL, {
+        method:  'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        body:    '{}',
+      }).finally(function () { modal.hide(); });
+    });
+  }
+
+  /* ── Bootstrap Modal init ───────────────────────────────── */
+  function showModal() {
+    const el = document.getElementById('attentionModal');
+    if (!el) return;
+    initTabs();
+    const modal = new bootstrap.Modal(el, { backdrop: 'static', keyboard: false });
+    modal.show();
+    initDismiss(modal);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', showModal);
+  } else {
+    showModal();
+  }
+})();
+</script>
+{% endif %}{# show_attention_modal #}
+    
+    <!-- Chart.js for dashboards -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- HTMX for dynamic updates -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Custom JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

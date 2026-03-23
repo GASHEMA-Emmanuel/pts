@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Approve Submission - Procurement Tracking System{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <!-- Header -->
+            <div class="mb-4">
+                <h1 class="fw-bold">Approve Submission</h1>
+                <p class="text-muted">{{ submission.tracking_reference }} - {{ submission.item_name }}</p>
+            </div>
+
+            <!-- Alert -->
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Method Selection Required:</strong> This submission is moving to <strong>{{ next_status }}</strong>, which requires selecting a procurement method to determine the publication timeline.
+            </div>
+
+            <!-- Form -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Select Procurement Method</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Procurement Method -->
+                        <div class="mb-3">
+                            <label for="{{ form.procurement_method.id_for_label }}" class="form-label">
+                                Procurement Method <span class="text-danger">*</span>
+                            </label>
+                            {{ form.procurement_method }}
+                            {% if form.procurement_method.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.procurement_method.errors.0 }}
+                                </div>
+                            {% endif %}
+                            {% if form.procurement_method.help_text %}
+                                <small class="form-text text-muted d-block mt-2">
+                                    {{ form.procurement_method.help_text|safe }}
+                                </small>
+                            {% endif %}
+                        </div>
+
+                        <!-- Timeline Information -->
+                        <div class="alert alert-info">
+                            <h6>Publication Timeline by Method:</h6>
+                            <ul class="mb-0 small">
+                                <li><strong>International Competitive:</strong> 30 business days</li>
+                                <li><strong>International Restricted:</strong> 14 business days</li>
+                                <li><strong>National Competitive:</strong> 21 business days</li>
+                                <li><strong>National Restricted:</strong> 7 business days</li>
+                                <li><strong>Request for Quotations:</strong> 3 business days</li>
+                                <li><strong>National Open Simplified:</strong> 8 business days</li>
+                                <li><strong>National Restricted Simplified:</strong> 5 business days</li>
+                                <li><strong>Other methods:</strong> Timeline not fixed</li>
+                            </ul>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Approval Notes (Optional)</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Any additional notes for this approval..."></textarea>
+                        </div>
+
+                        <!-- Approval Date -->
+                        <div class="mb-4">
+                            <label for="approvalDate" class="form-label">Approval Date (Optional)</label>
+                            <input type="date" class="form-control" id="approvalDate" name="approval_date">
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Approve & Set Timeline
+                            </button>
+                            <a href="{% url 'cbm_submission_detail' submission.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Submission Summary -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Submission Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Item:</strong> {{ submission.item_name }}</p>
+                            <p class="mb-2"><strong>Division:</strong> {{ submission.division.name }}</p>
+                            <p class="mb-0"><strong>Total Budget:</strong> RWF {{ submission.total_budget|floatformat:0 }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Status:</strong> <span class="badge bg-warning">{{ submission.status }}</span></p>
+                            <p class="mb-2"><strong>Current Stage:</strong> {{ submission.current_stage.name }}</p>
+                            <p class="mb-0"><strong>Submitted:</strong> {{ submission.submitted_at|date:"d M Y, H:i" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-select, .form-control {
+        border-color: #dee2e6;
+    }
+    .form-select:focus, .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+</style>
+{% endblock %}

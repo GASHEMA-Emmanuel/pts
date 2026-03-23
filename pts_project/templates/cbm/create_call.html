@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Procurement Call - CBM Dashboard{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-megaphone me-2"></i>Create Procurement Call</h1>
+            <p>Initiate a new procurement cycle for all divisions</p>
+        </div>
+    </div>
+</div>
+
+<!-- Form Card -->
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i> {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post" class="needs-validation" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="callTitle" class="form-label">Call Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="callTitle" name="title" placeholder="e.g., Annual Procurement 2026" required>
+                        <small class="form-text text-muted">A clear title for the procurement cycle</small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="callDescription" class="form-label">Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="callDescription" name="description" rows="5" placeholder="Provide detailed information about this procurement call, scope, requirements, and any special instructions for divisions" required></textarea>
+                        <small class="form-text text-muted">This description will be visible to all divisions</small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="callDocument" class="form-label">Call Document (Optional)</label>
+                        <input type="file" class="form-control" id="callDocument" name="call_document" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip">
+                        <small class="form-text text-muted">Upload supporting document (PDF, Word, Excel, etc.) - Max 10MB</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label for="deadline" class="form-label">Submission Deadline <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control" id="deadline" name="deadline" required>
+                            <small class="form-text text-muted">All divisions must submit by this date</small>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-control" id="status" name="status">
+                                <option value="Draft">Draft</option>
+                                <option value="Active" selected>Active</option>
+                            </select>
+                            <small class="form-text text-muted">Draft or Active (Active will notify divisions immediately)</small>
+                        </div>
+                    </div>
+                    
+                    
+                
+                    
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'cbm_calls' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-rbc">
+                            <i class="bi bi-check-circle"></i> Submit Procurement Call
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .text-danger {
+        color: #dc3545;
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+        text-align: center;
+    }
+</style>
+{% endblock %}

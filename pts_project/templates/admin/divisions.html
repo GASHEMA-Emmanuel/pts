@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Division Management - Admin{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-diagram-3 me-2"></i>Division Management</h1>
+            <p class="text-muted mb-0">Configure divisions and manage organisational structure</p>
+        </div>
+    </div>
+    <button class="btn btn-rbc" data-bs-toggle="modal" data-bs-target="#addDivisionModal">
+        <i class="bi bi-plus-circle me-1"></i> Add Division
+    </button>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+<div class="mb-3">
+    {% for msg in messages %}
+    <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show py-2" role="alert">
+        {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Summary bar -->
+<div class="d-flex align-items-center gap-3 mb-4">
+    <span class="badge bg-primary-subtle text-primary px-3 py-2" style="font-size:.9rem;">
+        <i class="bi bi-diagram-3 me-1"></i> {{ total_divisions }} Division{{ total_divisions|pluralize }}
+    </span>
+    <a href="{% url 'admin_users' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-people me-1"></i> View All Users
+    </a>
+</div>
+
+<!-- Divisions Grid -->
+{% if divisions %}
+<div class="divisions-grid">
+    {% for division in divisions %}
+    <div class="division-card" id="div-{{ division.id }}">
+        <!-- Header -->
+        <div class="division-card-header">
+            <div class="division-icon">
+                <i class="bi bi-building"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <h5 class="mb-0 text-truncate">{{ division.name }}</h5>
+                <small class="text-muted">Created {{ division.created_at|date:"d M Y" }}</small>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-ghost" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li>
+                        <button class="dropdown-item btn-edit-division"
+                            data-division-id="{{ division.id }}"
+                            data-name="{{ division.name }}"
+                            data-description="{{ division.description|default:'' }}"
+                            data-bs-toggle="modal" data-bs-target="#editDivisionModal">
+                            <i class="bi bi-pencil me-2 text-primary"></i>Edit Division
+                        </button>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin_users' %}?division={{ division.id }}">
+                            <i class="bi bi-people me-2 text-info"></i>View Users
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <button class="dropdown-item text-danger btn-delete-division"
+                            data-division-id="{{ division.id }}"
+                            data-division-name="{{ division.name }}"
+                            data-user-count="{{ division.user_count }}"
+                            data-bs-toggle="modal" data-bs-target="#deleteDivisionModal">
+                            <i class="bi bi-trash me-2"></i>Delete
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <p class="division-description">
+            {{ division.description|default:"No description provided." }}
+        </p>
+
+        <!-- Stats -->
+        <div class="division-stats">
+            <div class="div-stat">
+                <div class="div-stat-value">{{ division.user_count }}</div>
+                <div class="div-stat-label">Active Users</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="division-card-footer">
+            <a href="{% url 'admin_users' %}?division={{ division.id }}" class="btn btn-sm btn-outline-primary flex-grow-1">
+                <i class="bi bi-people me-1"></i>View Users
+            </a>
+            <button class="btn btn-sm btn-outline-secondary btn-edit-division"
+                data-division-id="{{ division.id }}"
+                data-name="{{ division.name }}"
+                data-description="{{ division.description|default:'' }}"
+                data-bs-toggle="modal" data-bs-target="#editDivisionModal">
+                <i class="bi bi-pencil"></i>
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card p-5 text-center">
+    <i class="bi bi-diagram-3" style="font-size:3rem;color:#ccc;"></i>
+    <h5 class="mt-3 text-muted">No Divisions Yet</h5>
+    <p class="text-muted">Get started by adding your first organisational division.</p>
+    <div class="mt-2">
+        <button class="btn btn-rbc" data-bs-toggle="modal" data-bs-target="#addDivisionModal">
+            <i class="bi bi-plus-circle me-1"></i>Add First Division
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- ===================== ADD DIVISION MODAL ===================== -->
+<div class="modal fade" id="addDivisionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add New Division</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'admin_divisions' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_division">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Division Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" required placeholder="e.g. Finance Department">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Description</label>
+                        <textarea class="form-control" name="description" rows="3" placeholder="Brief description of this division…"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-rbc"><i class="bi bi-check-circle me-1"></i>Create Division</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== EDIT DIVISION MODAL ===================== -->
+<div class="modal fade" id="editDivisionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Division</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'admin_divisions' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_division">
+                <input type="hidden" name="division_id" id="editDivId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Division Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="editDivName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Description</label>
+                        <textarea class="form-control" name="description" id="editDivDesc" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-rbc"><i class="bi bi-save me-1"></i>Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== DELETE DIVISION MODAL ===================== -->
+<div class="modal fade" id="deleteDivisionModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger-subtle">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Delete Division</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'admin_divisions' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_division">
+                <input type="hidden" name="division_id" id="deleteDivId">
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong id="deleteDivName"></strong>?</p>
+                    <div id="deleteDivWarning" class="alert alert-warning py-2 d-none" style="font-size:.85rem;">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        This division still has <strong id="deleteDivUserCount"></strong> active user(s) assigned. Remove or reassign them first.
+                    </div>
+                    <p class="text-muted mb-0" style="font-size:.85rem;">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm" id="deleteDivSubmitBtn">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.divisions-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:1.5rem; }
+.division-card { background:#fff; border:1px solid #e9ecef; border-radius:12px; padding:1.5rem; display:flex; flex-direction:column; gap:.75rem; transition:box-shadow .2s ease, border-color .2s ease; }
+.division-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.08); border-color:#0d6efd; }
+.division-card-header { display:flex; align-items:flex-start; gap:.85rem; }
+.division-icon { width:42px; height:42px; background:#e7f3ff; color:#0d6efd; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0; }
+.division-description { font-size:.88rem; color:#6c757d; line-height:1.5; margin:0; flex:1; }
+.division-stats { display:flex; gap:1.5rem; border-top:1px solid #f0f0f0; padding-top:.75rem; }
+.div-stat { text-align:center; }
+.div-stat-value { font-size:1.5rem; font-weight:700; color:#212529; line-height:1; }
+.div-stat-label { font-size:.78rem; color:#6c757d; margin-top:.2rem; }
+.division-card-footer { display:flex; gap:.5rem; border-top:1px solid #f0f0f0; padding-top:.75rem; }
+.btn-ghost { background:transparent; border:none; color:#6c757d; padding:.25rem .4rem; }
+.btn-ghost:hover { background:#f0f0f0; color:#212529; border-radius:6px; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Edit modal population
+    document.querySelectorAll('.btn-edit-division').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('editDivId').value   = this.dataset.divisionId;
+            document.getElementById('editDivName').value = this.dataset.name;
+            document.getElementById('editDivDesc').value = this.dataset.description;
+        });
+    });
+
+    // Delete modal population
+    document.querySelectorAll('.btn-delete-division').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('deleteDivId').value  = this.dataset.divisionId;
+            document.getElementById('deleteDivName').textContent = this.dataset.divisionName;
+            var count = parseInt(this.dataset.userCount, 10);
+            var warning = document.getElementById('deleteDivWarning');
+            var submitBtn = document.getElementById('deleteDivSubmitBtn');
+            if (count > 0) {
+                warning.classList.remove('d-none');
+                document.getElementById('deleteDivUserCount').textContent = count;
+                submitBtn.disabled = true;
+            } else {
+                warning.classList.add('d-none');
+                submitBtn.disabled = false;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

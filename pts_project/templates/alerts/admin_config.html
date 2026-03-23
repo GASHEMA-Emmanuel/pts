@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alert Configuration - PTS{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3">
+                <i class="bi bi-gear"></i> Alert Configuration
+            </h1>
+            <p class="text-muted">Configure alert thresholds and notification rules</p>
+        </div>
+    </div>
+
+    <!-- Configuration Cards -->
+    <div class="row">
+        {% for config in configurations %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-{% if config.is_enabled %}success{% else %}danger{% endif %}">
+                    <div class="card-header bg-{% if config.is_enabled %}success{% else %}secondary{% endif %} text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">{{ config.get_alert_type_display }}</h5>
+                            <span class="badge {% if config.is_enabled %}bg-light text-success{% else %}bg-danger{% endif %}">
+                                {% if config.is_enabled %}Enabled{% else %}Disabled{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">{{ config.description }}</p>
+                        
+                        <dl class="row small mb-3">
+                            <dt class="col-sm-6">Days Before Deadline:</dt>
+                            <dd class="col-sm-6"><strong>{{ config.days_before_deadline }}</strong></dd>
+                            
+                            <dt class="col-sm-6">Days In Stage:</dt>
+                            <dd class="col-sm-6"><strong>{{ config.days_in_stage }}</strong></dd>
+                        </dl>
+                        
+                        <div class="alert alert-info small mb-3">
+                            <strong>Notification Settings:</strong>
+                            <ul class="mb-0 mt-2">
+                                {% if config.send_email %}<li><i class="bi bi-envelope"></i> Email notifications enabled</li>{% endif %}
+                                {% if config.send_notification %}<li><i class="bi bi-bell"></i> In-app notifications enabled</li>{% endif %}
+                                {% if config.notify_division_head %}<li><i class="bi bi-person"></i> Division Heads notified</li>{% endif %}
+                                {% if config.notify_cbm %}<li><i class="bi bi-person"></i> CBM notified</li>{% endif %}
+                                {% if config.notify_procurement_team %}<li><i class="bi bi-people"></i> Procurement Team notified</li>{% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light">
+                        <a href="{% url 'alerts:admin_config_edit' config.id %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i> Edit Configuration
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

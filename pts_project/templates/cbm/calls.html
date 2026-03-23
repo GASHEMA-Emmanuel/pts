@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Procurement Calls - CBM Dashboard{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-megaphone me-2"></i>Procurement Calls</h1>
+            <p>Create and manage procurement cycles for all divisions</p>
+        </div>
+    </div>
+    <a href="{% url 'cbm_create_call' %}" class="btn btn-rbc">
+        <i class="bi bi-plus-circle"></i>
+        Create Procurement Call
+    </a>
+</div>
+
+<!-- Calls List -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="bi bi-table"></i> Procurement Calls</h5>
+        <span class="badge bg-primary">{{ calls|length }} calls</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Deadline</th>
+                        <th>Submissions</th>
+                        <th>Pending</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for call in calls %}
+                    <tr>
+                        <td>
+                            <div class="call-title">
+                                <strong>{{ call.title }}</strong>
+                                <p class="text-muted small mb-0">{{ call.description|truncatewords:10 }}</p>
+                            </div>
+                        </td>
+                        <td>
+                            {% if call.status == 'Active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif call.status == 'Draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% elif call.status == 'Closed' %}
+                                <span class="badge bg-danger">Closed</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ call.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ call.deadline|date:"M d, Y" }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ call.total_submissions }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning">{{ call.pending_submissions }}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ call.created_at|date:"M d" }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'cbm_call_detail' call.id %}" class="btn btn-outline-primary" title="View/Edit details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if call.status == 'Draft' %}
+                                <form method="post" action="{% url 'cbm_publish_call' call.id %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-success" title="Publish call">
+                                        <i class="bi bi-check-circle"></i> Publish
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox"></i> No procurement calls found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .call-title {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .call-title strong {
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+    }
+</style>
+{% endblock %}

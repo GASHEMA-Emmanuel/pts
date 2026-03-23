@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard - Procurement Tracking System{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+            <p>Welcome, {{ user.full_name }}! Here's your system overview.</p>
+        </div>
+    </div>
+    {% if user.role.can_create_calls %}
+    <a href="#" class="btn btn-rbc">
+        <i class="bi bi-plus-circle"></i>
+        New Procurement Call
+    </a>
+    {% endif %}
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Active Calls</div>
+            <div class="kpi-value text-primary">{{ stats.active_calls|default:"0" }}</div>
+        </div>
+        <div class="kpi-icon bg-primary-subtle">
+            <i class="bi bi-megaphone"></i>
+        </div>
+    </div>
+    
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Pending Approvals</div>
+            <div class="kpi-value text-warning">{{ stats.pending_approvals|default:"0" }}</div>
+        </div>
+        <div class="kpi-icon bg-warning-subtle">
+            <i class="bi bi-hourglass-split"></i>
+        </div>
+    </div>
+    
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Total Submissions</div>
+            <div class="kpi-value text-info">{{ stats.total_submissions|default:"0" }}</div>
+        </div>
+        <div class="kpi-icon bg-info-subtle">
+            <i class="bi bi-file-earmark-text"></i>
+        </div>
+    </div>
+    
+    <div class="kpi-card">
+        <div class="kpi-content">
+            <div class="kpi-label">Pending Bids</div>
+            <div class="kpi-value text-success">{{ stats.pending_bids|default:"0" }}</div>
+        </div>
+        <div class="kpi-icon bg-success-subtle">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard Grid -->
+<div class="dashboard-grid">
+    <!-- Left Column -->
+    <div>
+        <!-- Pending Approvals Table -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-hourglass-split"></i> Pending Approvals</h5>
+                <a href="#" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Submission</th>
+                                <th>Stage</th>
+                                <th>Days</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if pending_approvals %}
+                                {% for item in pending_approvals %}
+                                <tr>
+                                    <td class="fw-medium">{{ item.tracking_reference }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ item.stage_class }}">{{ item.current_stage_name }}</span>
+                                    </td>
+                                    <td>{{ item.days_at_stage }} days</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">Review</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
+                                        No pending approvals
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if pending_approvals %}
+            <div class="card-footer bg-transparent border-top">
+                <a href="#" class="card-link">View all pending approvals <i class="bi bi-arrow-right"></i></a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-activity"></i> Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_activity %}
+                    {% for activity in recent_activity %}
+                    <div class="activity-item">
+                        <div class="activity-indicator {{ activity.type }}"></div>
+                        <div class="activity-content">
+                            <h6>{{ activity.title }}</h6>
+                            <p>{{ activity.description }} - {{ activity.time }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="activity-item">
+                        <div class="activity-indicator success"></div>
+                        <div class="activity-content">
+                            <h6>System Ready</h6>
+                            <p>No recent activity to display</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column -->
+    <div>
+        <!-- Recent Submissions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-file-earmark-text"></i> Recent Submissions</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_submissions %}
+                    {% for submission in recent_submissions %}
+                    <div class="submission-item">
+                        <div class="submission-info">
+                            <h6>{{ submission.item_name }}</h6>
+                            <small>{{ submission.tracking_reference }}</small>
+                        </div>
+                        <span class="badge badge-{{ submission.status_class }}">{{ submission.status }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No recent submissions
+                    </div>
+                {% endif %}
+            </div>
+            {% if recent_submissions %}
+            <div class="card-footer bg-transparent border-top">
+                <a href="#" class="card-link">View all submissions <i class="bi bi-arrow-right"></i></a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Quick Actions or Workflow Overview -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-diagram-3"></i> Workflow Overview</h5>
+            </div>
+            <div class="card-body">
+                {% if workflow_summary %}
+                    {% for stage in workflow_summary %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge" style="background-color: {{ stage.color }}; width: 10px; height: 10px; padding: 0;"></span>
+                            <span class="small">{{ stage.name }}</span>
+                        </div>
+                        <span class="badge bg-light text-dark">{{ stage.count }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <p class="mb-0">No workflow data available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Dashboard refresh functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh dashboard data every 5 minutes
+    setInterval(function() {
+        // Could use HTMX or fetch to refresh specific sections
+        console.log('Dashboard could refresh here');
+    }, 300000);
+});
+</script>
+{% endblock %}

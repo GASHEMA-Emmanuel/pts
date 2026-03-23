@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc3545; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
+        .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+        .footer { background-color: #f0f0f0; padding: 10px; text-align: center; font-size: 12px; }
+        .alert-box { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+        .submission-details { background-color: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .detail-row { margin: 10px 0; }
+        .label { font-weight: bold; color: #555; }
+        .button { background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px; }
+        .critical { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0;">⚠️ Deadline Alert</h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear User,</p>
+            
+            <p>This is an automated alert regarding a submission deadline.</p>
+            
+            <div class="alert-box">
+                <p class="critical">{{ alert.title }}</p>
+                <p>{{ alert.description }}</p>
+            </div>
+            
+            <div class="submission-details">
+                <h4>Submission Details:</h4>
+                <div class="detail-row">
+                    <span class="label">Tracking Reference:</span> {{ submission.tracking_reference }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Item Name:</span> {{ submission.item_name }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Division:</span> {{ submission.division.name }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Current Status:</span> {{ submission.status }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Budget:</span> RWF {{ submission.estimated_budget|floatformat:0 }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Priority:</span> <strong>{{ submission.priority }}</strong>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Deadline:</span> <span class="critical">{{ deadline|date:"F d, Y" }}</span>
+                </div>
+            </div>
+            
+            <h4>Required Action:</h4>
+            {% if deadline_type == 'cbm_review' %}
+                <p>This submission requires CBM review. Please access the system and review this submission to avoid delays in the procurement process.</p>
+            {% elif deadline_type == 'procurement' %}
+                <p>This procurement process is approaching its deadline. Please ensure all required steps are completed on time.</p>
+            {% endif %}
+            
+            <a href="https://pts.rbc.gov.rw/dashboard/procurement/{{ submission.id }}/detail/" class="button">View Submission</a>
+            
+            <hr style="margin: 30px 0;">
+            
+            <p>Best regards,<br>
+            <strong>Procurement Tracking System (PTS)</strong><br>
+            Rwanda Biomedical Center</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; 2026 Rwanda Biomedical Center. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

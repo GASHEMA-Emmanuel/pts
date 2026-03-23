@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Logged Out - Procurement Tracking System{% endblock %}
+
+{% block auth_content %}
+<div class="login-wrapper">
+    <div class="login-brand">
+        <div class="brand-content">
+            <div class="brand-logo">
+                <i class="bi bi-box-seam-fill"></i>
+            </div>
+            <h1>PROCUREMENT</h1>
+            <h1>TRACKING SYSTEM</h1>
+            <hr>
+            <p>Streamline Your Procurement Process</p>
+        </div>
+    </div>
+    
+    <div class="login-form-wrapper">
+        <div class="login-form-container text-center">
+            <div class="mb-4">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+            </div>
+            <h2>You have been logged out</h2>
+            <p class="text-muted mb-4">Thank you for using the Procurement Tracking System.</p>
+            
+            <a href="{% url 'account_login' %}" class="btn btn-rbc">
+                <i class="bi bi-box-arrow-in-right me-2"></i>
+                Sign In Again
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

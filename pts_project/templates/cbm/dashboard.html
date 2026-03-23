@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}CBM Dashboard - Procurement Tracking System{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div>
+            <h1><i class="bi bi-shield-check me-2 text-primary"></i>CBM Dashboard</h1>
+            <p class="text-muted mb-0">Procurement Cycle Oversight &amp; Strategic Management</p>
+        </div>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'cbm_calls' %}" class="btn btn-outline-primary btn-sm me-2">
+            <i class="bi bi-megaphone me-1"></i> Calls
+        </a>
+        <a href="{% url 'cbm_compiled_documents' %}" class="btn btn-outline-secondary btn-sm me-2">
+            <i class="bi bi-folder2-open me-1"></i> Compiled Documents
+            {% if pending_compiled_count %}<span class="badge bg-warning text-dark ms-1">{{ pending_compiled_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'cbm_create_call' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> New Call
+        </a>
+    </div>
+</div>
+
+<!-- KPI Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card h-100">
+            <div class="kpi-content">
+                <div class="kpi-label">Active Calls</div>
+                <div class="kpi-value text-primary">{{ stats.active_calls|default:"0" }}</div>
+            </div>
+            <div class="kpi-icon bg-primary-subtle"><i class="bi bi-megaphone"></i></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card h-100 {% if stats.awaiting_cbm_action > 0 %}border-danger{% endif %}">
+            <div class="kpi-content">
+                <div class="kpi-label">Awaiting CBM Action</div>
+                <div class="kpi-value {% if stats.awaiting_cbm_action > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ stats.awaiting_cbm_action|default:"0" }}
+                </div>
+            </div>
+            <div class="kpi-icon {% if stats.awaiting_cbm_action > 0 %}bg-danger-subtle{% else %}bg-success-subtle{% endif %}">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card h-100">
+            <div class="kpi-content">
+                <div class="kpi-label">Tenders in Progress</div>
+                <div class="kpi-value text-info">{{ stats.tenders_in_progress|default:"0" }}</div>
+            </div>
+            <div class="kpi-icon bg-info-subtle"><i class="bi bi-file-earmark-text"></i></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card h-100">
+            <div class="kpi-content">
+                <div class="kpi-label">Active Contracts</div>
+                <div class="kpi-value text-success">{{ stats.active_contracts|default:"0" }}</div>
+            </div>
+            <div class="kpi-icon bg-success-subtle"><i class="bi bi-file-earmark-check"></i></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card h-100 {% if stats.overdue_contracts > 0 %}border-warning{% endif %}">
+            <div class="kpi-content">
+                <div class="kpi-label">Overdue Contracts</div>
+                <div class="kpi-value {% if stats.overdue_contracts > 0 %}text-warning{% else %}text-muted{% endif %}">
+                    {{ stats.overdue_contracts|default:"0" }}
+                </div>
+            </div>
+            <div class="kpi-icon {% if stats.overdue_contracts > 0 %}bg-warning-subtle{% else %}bg-secondary-subtle{% endif %}">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="kpi-card h-100">
+            <div class="kpi-content">
+                <div class="kpi-label">Budget in Pipeline</div>
+                <div class="kpi-value text-primary" style="font-size:1rem;">
+                    {% if stats.total_budget %}
+                        RWF {{ stats.total_budget|floatformat:0 }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+            </div>
+            <div class="kpi-icon bg-primary-subtle"><i class="bi bi-cash-stack"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 2: Action Queue -->
+{% if action_queue %}
+<div class="card mb-4 border-danger-subtle">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-bell-fill text-danger me-2"></i>Requires Your Action
+            <span class="badge bg-danger ms-2">{{ action_queue|length }}</span>
+        </h5>
+        <a href="{% url 'cbm_submissions' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Reference</th>
+                        <th>Item</th>
+                        <th>Division</th>
+                        <th>Stage</th>
+                        <th class="text-end">Budget (RWF)</th>
+                        <th class="text-center">Days Waiting</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in action_queue %}
+                    <tr>
+                        <td><code class="small">{{ item.tracking_reference }}</code></td>
+                        <td class="fw-semibold">{{ item.item_name|truncatechars:40 }}</td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">{{ item.division }}</span></td>
+                        <td>
+                            {% if item.status == 'CBM Approval' %}
+                                <span class="badge bg-danger">{{ item.status }}</span>
+                            {% elif item.status == 'CBM Review TD' %}
+                                <span class="badge bg-warning text-dark">{{ item.status }}</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">{{ item.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ item.total_budget|floatformat:0 }}</td>
+                        <td class="text-center">
+                            <span class="badge {% if item.days_waiting > 5 %}bg-danger{% elif item.days_waiting > 2 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {{ item.days_waiting }}d
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'cbm_submission_detail' item.id %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-arrow-right-circle"></i> Review
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success d-flex align-items-center mb-4">
+    <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+    <div>No submissions currently require your action. All clear!</div>
+</div>
+{% endif %}
+
+<!-- Row 3: Pipeline Funnel + Contract Health -->
+<div class="row g-4 mb-4">
+    <!-- Pipeline Funnel -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-funnel me-2 text-primary"></i>Procurement Pipeline</h5>
+            </div>
+            <div class="card-body p-0" style="max-height:380px;overflow-y:auto;">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for item in pipeline_funnel %}
+                        {% if item.count > 0 %}
+                        <tr>
+                            <td class="ps-3 py-2 text-muted small">{{ item.status }}</td>
+                            <td class="pe-3 py-2" style="width:60%;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height:8px;">
+                                        <div class="progress-bar {% if 'CBM' in item.status %}bg-danger{% elif item.status == 'Awarded' %}bg-success{% else %}bg-primary{% endif %}"
+                                             style="width:{% widthratio item.count 1 10 %}%;min-width:4px;max-width:100%;"></div>
+                                    </div>
+                                    <span class="badge bg-primary-subtle text-primary fw-bold">{{ item.count }}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% empty %}
+                        <tr><td colspan="2" class="text-center text-muted py-4">No submissions in pipeline</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contract Health -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-heart-pulse me-2 text-success"></i>Contract Health</h5>
+                <a href="{% url 'contracts_list' %}" class="btn btn-sm btn-outline-secondary">All Contracts</a>
+            </div>
+            <div class="card-body p-0" style="max-height:380px;overflow-y:auto;">
+                {% if contract_health %}
+                <ul class="list-group list-group-flush">
+                    {% for c in contract_health %}
+                    <li class="list-group-item py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold small">{{ c.contract_name|truncatechars:45 }}</div>
+                                <div class="text-muted" style="font-size:.75rem;">{{ c.contract_number }} · {{ c.contract_type }} · {{ c.division }}</div>
+                            </div>
+                            <div class="d-flex flex-column align-items-end gap-1 ms-2">
+                                {% if c.health == 'overdue' %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                    {% if c.days_until_delivery is not None %}
+                                        <small class="text-danger">{{ c.days_until_delivery }} days</small>
+                                    {% endif %}
+                                {% elif c.health == 'warning' %}
+                                    <span class="badge bg-warning text-dark">Due Soon</span>
+                                    {% if c.days_until_delivery is not None %}
+                                        <small class="text-warning">{{ c.days_until_delivery }}d left</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-success">Healthy</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center text-muted py-4">No active contracts</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 4: Active Calls + Recent Activity -->
+<div class="row g-4 mb-4">
+    <!-- Active Calls with Division Progress -->
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-megaphone me-2 text-info"></i>Active Procurement Calls</h5>
+                <a href="{% url 'cbm_calls' %}" class="btn btn-sm btn-outline-secondary">Manage</a>
+            </div>
+            <div class="card-body p-0">
+                {% if active_calls_data %}
+                <ul class="list-group list-group-flush">
+                    {% for call in active_calls_data %}
+                    <li class="list-group-item py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold">{{ call.title }}</div>
+                                <div class="text-muted small">
+                                    <code>{{ call.reference_number }}</code> &middot;
+                                    Deadline: {{ call.end_date|date:"d M Y" }} &middot;
+                                    <span class="{% if call.days_remaining <= 3 %}text-danger{% elif call.days_remaining <= 7 %}text-warning{% else %}text-muted{% endif %}">
+                                        {{ call.days_remaining }} day{{ call.days_remaining|pluralize }} left
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-primary">{{ call.total_submissions }}</div>
+                                <div class="text-muted" style="font-size:.75rem;">submissions</div>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center text-muted py-4">No active procurement calls</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Feed -->
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-activity me-2 text-secondary"></i>Recent Activity</h5>
+            </div>
+            <div class="card-body p-0" style="max-height:380px;overflow-y:auto;">
+                {% if recent_activity %}
+                <ul class="list-group list-group-flush">
+                    {% for ev in recent_activity %}
+                    <li class="list-group-item py-2 px-3">
+                        <div class="d-flex gap-2 align-items-start">
+                            <i class="bi bi-arrow-right-circle text-primary mt-1"></i>
+                            <div>
+                                <div class="small fw-semibold">{{ ev.action }} — <code class="text-muted">{{ ev.submission_ref }}</code></div>
+                                <div class="text-muted" style="font-size:.75rem;">
+                                    {{ ev.actor }}
+                                    {% if ev.from_stage != '—' %} · {{ ev.from_stage }} → {{ ev.to_stage }}{% endif %}
+                                </div>
+                                <div class="text-muted" style="font-size:.7rem;">{{ ev.time }}</div>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center text-muted py-4">No recent activity</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 5: Division Snapshot -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-diagram-3 me-2 text-secondary"></i>Division Submission Snapshot</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Division</th>
+                        <th class="text-center">Total Submissions</th>
+                        <th class="text-center">Awaiting CBM</th>
+                        <th class="text-center">Awarded / Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for div in divisions_status %}
+                    <tr>
+                        <td><strong>{{ div.name }}</strong></td>
+                        <td class="text-center">{{ div.submission_count }}</td>
+                        <td class="text-center">
+                            {% if div.cbm_action > 0 %}
+                                <span class="badge bg-danger">{{ div.cbm_action }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if div.awarded > 0 %}
+                                <span class="badge bg-success">{{ div.awarded }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">No divisions found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ doc.document_name }} - Compiled Document{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1" style="font-size:.85rem;">
+                    <li class="breadcrumb-item"><a href="{% url 'procurement_compile_document' %}" class="text-decoration-none">Compiled Documents</a></li>
+                    <li class="breadcrumb-item active">{{ doc.document_name }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-0"><i class="bi bi-file-earmark-text me-2 text-primary"></i>{{ doc.document_name }}</h1>
+        </div>
+        <div class="col-auto d-flex gap-2">
+            {% if doc.file %}
+            <a href="{{ doc.file.url }}" class="btn btn-outline-secondary" target="_blank">
+                <i class="bi bi-download me-1"></i>Download
+            </a>
+            {% endif %}
+            {% if doc.status == 'Sent to CBM' %}
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#publishModal">
+                <i class="bi bi-megaphone me-1"></i>Publish
+            </button>
+            {% endif %}
+            <a href="{% url 'procurement_compile_document' %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- LEFT: Tracker + Metadata -->
+        <div class="col-lg-5">
+
+            <!-- Tracker -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="mb-1 fw-bold"><i class="bi bi-diagram-3 me-2"></i>Document Tracker</h5>
+                    <p class="text-muted small mb-4">Progress of this compiled document through the workflow.</p>
+
+                    <div class="workflow-stages">
+
+                        <!-- Step 1: Compiled & Uploaded -->
+                        <div class="workflow-stage">
+                            <div class="stage-approval-date">&nbsp;</div>
+                            <div class="stage-indicator completed">
+                                <div class="stage-number">1</div>
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                            <div class="stage-label">Compiled &amp; Uploaded</div>
+                        </div>
+
+                        <!-- Step 2: Sent to CBM -->
+                        <div class="workflow-stage">
+                            <div class="stage-approval-date">&nbsp;</div>
+                            <div class="stage-indicator {% if doc.status == 'Published' %}completed{% else %}current{% endif %}">
+                                <div class="stage-number">2</div>
+                                {% if doc.status == 'Published' %}
+                                    <i class="bi bi-check-circle-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-circle-fill"></i>
+                                {% endif %}
+                            </div>
+                            <div class="stage-label">Sent to CBM</div>
+                        </div>
+
+                        <!-- Step 3: Published -->
+                        <div class="workflow-stage">
+                            {% if doc.status == 'Published' %}
+                            <div class="stage-approval-date">{{ doc.updated_at|date:"d M Y" }}</div>
+                            {% else %}
+                            <div class="stage-approval-date">&nbsp;</div>
+                            {% endif %}
+                            <div class="stage-indicator {% if doc.status == 'Published' %}completed{% else %}pending{% endif %}">
+                                <div class="stage-number">3</div>
+                                {% if doc.status == 'Published' %}
+                                    <i class="bi bi-check-circle-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-circle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="stage-label">Published</div>
+                        </div>
+
+                    </div>
+
+                    <!-- Current status banner -->
+                    <div class="mt-3">
+                        {% if doc.status == 'Published' %}
+                        <div class="alert alert-success border-0 py-2 small mb-0">
+                            <i class="bi bi-check-circle-fill me-1"></i>
+                            This document has been <strong>published</strong> on {{ doc.updated_at|date:"d M Y" }}.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning border-0 py-2 small mb-0">
+                            <i class="bi bi-hourglass-split me-1"></i>
+                            Awaiting publication. CBM has been notified.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Details</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0" style="font-size:.9rem;">
+                        <dt class="col-sm-5 text-muted fw-normal">Submitted By</dt>
+                        <dd class="col-sm-7 fw-semibold">
+                            {% if doc.submitted_by %}
+                                {{ doc.submitted_by.get_full_name|default:doc.submitted_by.email }}
+                            {% else %}—{% endif %}
+                        </dd>
+
+                        <dt class="col-sm-5 text-muted fw-normal">Submitted On</dt>
+                        <dd class="col-sm-7">{{ doc.created_at|date:"d M Y, H:i" }}</dd>
+
+                        <dt class="col-sm-5 text-muted fw-normal">Last Updated</dt>
+                        <dd class="col-sm-7">{{ doc.updated_at|date:"d M Y, H:i" }}</dd>
+
+                        <dt class="col-sm-5 text-muted fw-normal">Status</dt>
+                        <dd class="col-sm-7">
+                            {% if doc.status == 'Published' %}
+                            <span class="badge bg-success">Published</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Sent to CBM</span>
+                            {% endif %}
+                        </dd>
+
+                        {% if doc.file %}
+                        <dt class="col-sm-5 text-muted fw-normal">File</dt>
+                        <dd class="col-sm-7">
+                            <a href="{{ doc.file.url }}" target="_blank" class="text-decoration-none small">
+                                <i class="bi bi-file-earmark me-1"></i>{{ doc.file.name|truncatechars:30 }}
+                            </a>
+                        </dd>
+                        {% endif %}
+
+                        {% if doc.description %}
+                        <dt class="col-sm-5 text-muted fw-normal mt-2">Description</dt>
+                        <dd class="col-sm-7 mt-2" style="white-space:pre-wrap;">{{ doc.description }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT: Document -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark me-2 text-primary"></i>Document</h6>
+                </div>
+                <div class="card-body">
+                    {% if doc.file %}
+                    <div class="d-flex align-items-center gap-3 p-3 rounded border bg-light">
+                        <div class="flex-shrink-0">
+                            <i class="bi bi-file-earmark-pdf text-danger" style="font-size:2.5rem;"></i>
+                        </div>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="fw-semibold text-truncate">{{ doc.document_name }}</div>
+                            <div class="text-muted small mt-1">
+                                Uploaded by
+                                {% if doc.submitted_by %}{{ doc.submitted_by.get_full_name|default:doc.submitted_by.email }}{% else %}—{% endif %}
+                                on {{ doc.created_at|date:"d M Y" }}
+                            </div>
+                            <div class="d-flex gap-2 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#docPreviewModal">
+                                    <i class="bi bi-eye me-1"></i>Preview
+                                </button>
+                                <a href="{{ doc.file.url }}" download class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-download me-1"></i>Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-file-earmark-x" style="font-size:2.5rem;"></i>
+                        <p class="mt-2 small">No file attached.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /row -->
+
+</div>
+
+<!-- Document Preview Modal -->
+{% if doc.file %}
+<div class="modal fade" id="docPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Document Preview: {{ doc.document_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="height:600px;display:flex;flex-direction:column;padding:0;">
+                {% if doc_file_type == 'pdf' %}
+                <div id="compiled-pdf-container" style="display:flex;flex-direction:column;height:100%;background:#f5f5f5;overflow-y:auto;">
+                    <canvas id="compiled-pdf-canvas" style="max-width:100%;height:auto;margin:10px auto;display:block;border:1px solid #ddd;box-shadow:0 2px 4px rgba(0,0,0,.1);"></canvas>
+                    <div id="compiled-pdf-loading" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;">
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading PDF...</span></div>
+                        <p class="mt-3 mb-0">Loading PDF...</p>
+                    </div>
+                    <div id="compiled-pdf-error" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;">
+                        <div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle"></i> Unable to load PDF</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 10px;background:#f8f9fa;border-top:1px solid #dee2e6;flex-shrink:0;">
+                    <button id="compiled-pdf-prev" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></button>
+                    <span id="compiled-pdf-page-info" style="color:#6c757d;font-size:.9rem;min-width:150px;text-align:center;">Page 1 of 1</span>
+                    <button id="compiled-pdf-next" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                {% elif doc_file_type == 'word' or doc_file_type == 'excel' %}
+                <div style="padding:15px;overflow-y:auto;flex:1;background-color:#f5f5f5;">
+                    {% if doc_preview_html %}
+                        {{ doc_preview_html|safe }}
+                    {% else %}
+                        <div class="alert alert-info"><i class="bi bi-info-circle"></i> Unable to load preview. <a href="{{ doc.file.url }}" download class="alert-link">Click here to download</a></div>
+                    {% endif %}
+                </div>
+                {% elif doc_file_type == 'txt' %}
+                <div style="padding:15px;overflow-y:auto;flex:1;">
+                    <p class="text-muted text-center mb-3"><i class="bi bi-info-circle"></i> Text Preview</p>
+                    <pre style="border:1px solid #ddd;border-radius:4px;padding:15px;background:#f5f5f5;font-size:.85rem;max-height:500px;overflow-y:auto;"><code>{{ doc.document_name }}</code></pre>
+                </div>
+                {% elif doc_file_type == 'zip' %}
+                <div style="padding:20px;">
+                    <div class="alert alert-info"><i class="bi bi-info-circle"></i> ZIP files cannot be previewed. <a href="{{ doc.file.url }}" download class="alert-link">Click here to download</a></div>
+                </div>
+                {% else %}
+                <div style="padding:20px;">
+                    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> This file type cannot be previewed. <a href="{{ doc.file.url }}" download class="alert-link">Download the file instead</a></div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <a href="{{ doc.file.url }}" download class="btn btn-primary"><i class="bi bi-download"></i> Download</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if doc_file_type == 'pdf' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function() {
+    const pdfUrl = '{{ absolute_document_url }}';
+    let pdfDoc = null;
+    let currentPage = 1;
+    const canvas = document.getElementById('compiled-pdf-canvas');
+    const context = canvas ? canvas.getContext('2d') : null;
+    const loading = document.getElementById('compiled-pdf-loading');
+    const errorDiv = document.getElementById('compiled-pdf-error');
+    const pageInfo = document.getElementById('compiled-pdf-page-info');
+    const prevBtn = document.getElementById('compiled-pdf-prev');
+    const nextBtn = document.getElementById('compiled-pdf-next');
+    if (!canvas) return;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    async function renderPage(num) {
+        try {
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale: 1.5 });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            currentPage = num;
+            pageInfo.textContent = `Page ${num} of ${pdfDoc.numPages}`;
+            prevBtn.disabled = num <= 1;
+            nextBtn.disabled = num >= pdfDoc.numPages;
+        } catch (err) {
+            errorDiv.style.display = 'flex';
+            loading.style.display = 'none';
+        }
+    }
+    async function loadPDF() {
+        try {
+            loading.style.display = 'flex';
+            errorDiv.style.display = 'none';
+            pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+            loading.style.display = 'none';
+            await renderPage(1);
+        } catch (err) {
+            loading.style.display = 'none';
+            errorDiv.style.display = 'flex';
+        }
+    }
+    if (prevBtn) prevBtn.addEventListener('click', () => { if (currentPage > 1) renderPage(currentPage - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { if (currentPage < pdfDoc.numPages) renderPage(currentPage + 1); });
+    const modal = document.getElementById('docPreviewModal');
+    if (modal) modal.addEventListener('shown.bs.modal', () => { if (!pdfDoc) loadPDF(); });
+})();
+</script>
+{% endif %}
+{% endif %}
+
+<!-- Publish Modal -->
+{% if doc.status == 'Sent to CBM' %}
+<div class="modal fade" id="publishModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-megaphone text-success me-2"></i>Publish Document</h5>
+                    <p class="text-muted small mb-0">{{ doc.document_name }}</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement_publish_compiled_document' doc.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-success border-0 small mb-3">
+                        <i class="bi bi-check-circle me-1"></i>
+                        CBM has been notified and this document is ready to publish.
+                    </div>
+                    <p class="small text-muted">Publishing will mark this document as the approved procurement plan.</p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-megaphone me-1"></i>Publish
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .workflow-stages {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        position: relative;
+        padding: 20px 0;
+    }
+    .workflow-stages::before {
+        content: '';
+        position: absolute;
+        top: 50px;
+        left: 10%;
+        right: 10%;
+        height: 2px;
+        background: #dee2e6;
+        z-index: 0;
+    }
+    .workflow-stage {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+    .stage-approval-date {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #0d6efd;
+        margin-bottom: 5px;
+        letter-spacing: 0.5px;
+        height: 18px;
+    }
+    .stage-indicator {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 10px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        background: white;
+        border: 2px solid #dee2e6;
+        transition: all 0.3s ease;
+    }
+    .stage-indicator.pending   { background: #f8f9fa; border-color: #dee2e6; color: #adb5bd; }
+    .stage-indicator.current   { background: #e7f3ff; border-color: #0d6efd; color: #0d6efd; box-shadow: 0 0 0 4px rgba(13,110,253,0.1); }
+    .stage-indicator.completed { background: #d1e7dd; border-color: #198754; color: #198754; }
+    .stage-indicator i { font-size: 24px; position: relative; z-index: 1; }
+    .stage-number {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        font-weight: bold;
+        font-size: 18px;
+    }
+    .stage-indicator.completed .stage-number,
+    .stage-indicator.current .stage-number { display: none; }
+    .stage-label {
+        font-size: 0.85rem;
+        color: #555;
+        font-weight: 500;
+        max-width: 100px;
+        margin: 0 auto;
+    }
+</style>
+
+{% endblock %}

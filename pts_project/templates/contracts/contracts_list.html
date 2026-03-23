@@ -1,0 +1,418 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Contract Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1"><i class="bi bi-file-earmark-check me-2"></i>Contract Management</h1>
+            <p class="text-muted mb-0">Track and manage all procurement contracts</p>
+        </div>
+        {% if is_procurement %}
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContractModal">
+            <i class="bi bi-plus-circle me-1"></i> New Contract
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-3 fw-bold text-primary">{{ stats.total }}</div>
+                <div class="text-muted small">Total</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-3 fw-bold text-success">{{ stats.active }}</div>
+                <div class="text-muted small">Active</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-3 fw-bold text-secondary">{{ stats.completed }}</div>
+                <div class="text-muted small">Completed</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-3 fw-bold text-info">{{ stats.lumpsum }}</div>
+                <div class="text-muted small">Lumpsum</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-3 fw-bold text-warning">{{ stats.framework }}</div>
+                <div class="text-muted small">Framework</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm text-center p-3">
+                <div class="fs-3 fw-bold text-danger">{{ stats.works }}</div>
+                <div class="text-muted small">Works</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search number or name...">
+                </div>
+                <div class="col-auto">
+                    <select name="type" class="form-select form-select-sm">
+                        <option value="">All Types</option>
+                        {% for t in contract_types %}
+                        <option value="{{ t }}" {% if type_filter == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">All Statuses</option>
+                        <option value="Active"    {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Renewed"   {% if status_filter == 'Renewed' %}selected{% endif %}>Renewed</option>
+                        <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+                        <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+                    <a href="{% url 'contracts_list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if contracts %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Contract Number</th>
+                            <th>Contract Name</th>
+                            <th>Type</th>
+                            <th>Division / PM</th>
+                            <th>Status</th>
+                            <th>Key Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in contracts %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'contract_detail' c.pk %}" class="fw-semibold text-decoration-none">
+                                    {{ c.contract_number }}
+                                </a>
+                            </td>
+                            <td>{{ c.contract_name|truncatechars:50 }}</td>
+                            <td>
+                                <span class="badge
+                                    {% if c.contract_type == 'Lumpsum' %}bg-info text-dark
+                                    {% elif c.contract_type == 'Framework' %}bg-warning text-dark
+                                    {% elif c.contract_type == 'Consultancy Service' %}bg-primary
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ c.contract_type }}
+                                </span>
+                            </td>
+                            <td class="small text-muted">
+                                {{ c.division.name|default:"—" }}<br>
+                                {% with pms=c.project_managers.all %}
+                                {% if pms %}
+                                    {% for pm in pms %}<span class="text-dark">{{ pm.full_name|default:pm.email }}</span>{% if not forloop.last %}, {% endif %}{% endfor %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <span class="badge
+                                    {% if c.status == 'Active' %}bg-success
+                                    {% elif c.status == 'Renewed' %}bg-primary
+                                    {% elif c.status == 'Completed' %}bg-secondary
+                                    {% else %}bg-light text-dark border{% endif %}">
+                                    {{ c.status }}
+                                </span>
+                            </td>
+                            <td class="small text-muted">
+                                {% if c.contract_type == 'Lumpsum' and c.delivery_date %}
+                                    Delivery: {{ c.delivery_date|date:"d M Y" }}
+                                    {% with dr=c.days_until_delivery %}
+                                    {% if dr is not None %}
+                                        <br><span class="{% if dr < 0 %}text-danger fw-bold{% elif dr <= 7 %}text-warning fw-semibold{% else %}text-muted{% endif %}">
+                                            {% if dr < 0 %}Overdue {{ dr|abs }} days{% else %}{{ dr }}d left{% endif %}
+                                        </span>
+                                    {% endif %}
+                                    {% endwith %}
+                                {% elif c.contract_type == 'Framework' %}
+                                    Ends: {{ c.framework_active_end|date:"d M Y"|default:"Not set" }}
+                                    {% if c.is_renewed %}<br><span class="badge bg-primary bg-opacity-25 text-primary small">Renewed</span>{% endif %}
+                                {% elif c.contract_type == 'Consultancy Service' %}
+                                    Step: {{ c.current_consultancy_step }}
+                                {% elif c.contract_type == 'Works' %}
+                                    Step: {{ c.current_works_step }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'contract_detail' c.pk %}" class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-file-earmark-check d-block fs-1 mb-3"></i>
+                <p>No contracts found.</p>
+                {% if is_procurement %}
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContractModal">
+                    <i class="bi bi-plus-circle me-1"></i> Create First Contract
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if is_procurement %}
+<!-- ── Create Contract Modal ─────────────────────────────────── -->
+<div class="modal fade" id="createContractModal" tabindex="-1" aria-labelledby="createContractLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createContractLabel">
+                    <i class="bi bi-file-earmark-plus"></i> New Contract
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'contract_create' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body row g-3">
+
+                    <!-- Row 1: Number + Structure -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Contract Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="contract_number" id="id_contract_number"
+                               required placeholder="e.g. RBC/2025/CT/001"
+                               value="{{ request.GET.cn }}">
+                        <div id="cnFeedback" class="form-text"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Contract Structure <span class="text-danger">*</span></label>
+                        <select class="form-select" id="id_contract_structure" name="contract_structure" required>
+                            <option value="">— Select Structure —</option>
+                            <option value="Lumpsum">Lumpsum</option>
+                            <option value="Framework">Framework</option>
+                        </select>
+                        <div class="form-text">Choose how this contract is structured financially.</div>
+                    </div>
+
+                    <!-- Row 2: Contract Type (shown after structure) -->
+                    <div class="col-md-6" id="contract_type_wrap" style="display:none">
+                        <label class="form-label fw-semibold">Contract Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="id_contract_type" name="contract_type" required disabled>
+                            <option value="">— Select Type —</option>
+                        </select>
+                        <div class="form-text">Specific category within the selected structure.</div>
+                    </div>
+
+                    <!-- Row 2b: Contract Name -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Contract Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="contract_name" required placeholder="Descriptive name of the contract">
+                    </div>
+
+                    <!-- Row 3: Budget + Supplier/Consultant Name -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Contract Amount (RWF)</label>
+                        <input type="number" class="form-control" name="contract_budget" min="0" step="0.01" placeholder="e.g. 5000000">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" id="supplier_label">Supplier / Contractor Name</label>
+                        <input type="text" class="form-control" name="supplier_name" id="id_supplier_name" placeholder="Name of supplier or consultant">
+                    </div>
+
+                    <!-- Row 4: Division + Project Managers -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Division</label>
+                        <select class="form-select" id="id_division" name="division">
+                            <option value="">— Select Division —</option>
+                            {% for div in divisions %}
+                            <option value="{{ div.id }}">{{ div.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Project Manager(s)</label>
+                        <div id="pm_checkbox_list" class="border rounded p-2" style="max-height:150px;overflow-y:auto;background:#fff;">
+                            <span class="text-muted small">Select a division first</span>
+                        </div>
+                        <div class="form-text">Tick one or more project managers from the selected division.</div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Notes</label>
+                        <textarea class="form-control" name="notes" rows="2" placeholder="Any additional notes..."></textarea>
+                    </div>
+
+                    <!-- Contract Document -->
+                    <div class="col-12">
+                        <hr class="my-1">
+                        <label class="form-label fw-semibold"><i class="bi bi-file-earmark-pdf me-1 text-primary"></i>Contract Document <span class="text-muted fw-normal small">(optional — can be added later)</span></label>
+                        <input type="file" class="form-control" name="contract_document" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                        <div class="form-text">Upload the signed contract document (PDF, Word, or image).</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="createContractSubmitBtn">
+                        <i class="bi bi-file-earmark-plus"></i> Create Contract
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// ── AJAX Contract-Number Uniqueness Check ──────────────────────
+(function () {
+    const cnInput   = document.getElementById('id_contract_number');
+    const cnFeedback = document.getElementById('cnFeedback');
+    const submitBtn  = document.getElementById('createContractSubmitBtn');
+    let checkTimeout = null;
+    let numberExists = false;
+
+    function checkNumber(value) {
+        if (!value) {
+            cnInput.classList.remove('is-valid', 'is-invalid');
+            cnFeedback.textContent = '';
+            numberExists = false;
+            submitBtn.disabled = false;
+            return;
+        }
+        cnFeedback.innerHTML = '<span class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Checking…</span>';
+        fetch(`{% url 'contract_check_number' %}?number=${encodeURIComponent(value)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.exists) {
+                    cnInput.classList.remove('is-valid');
+                    cnInput.classList.add('is-invalid');
+                    cnFeedback.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>This contract number is already in use.</span>';
+                    submitBtn.disabled = true;
+                    numberExists = true;
+                } else {
+                    cnInput.classList.remove('is-invalid');
+                    cnInput.classList.add('is-valid');
+                    cnFeedback.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Number is available.</span>';
+                    submitBtn.disabled = false;
+                    numberExists = false;
+                }
+            })
+            .catch(() => { /* silently ignore network errors */ });
+    }
+
+    if (cnInput) {
+        cnInput.addEventListener('input', function () {
+            clearTimeout(checkTimeout);
+            checkTimeout = setTimeout(() => checkNumber(this.value.trim()), 400);
+        });
+    }
+
+    // Auto-reopen modal if redirected back after a validation error
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('reopen') === '1') {
+        const modal = new bootstrap.Modal(document.getElementById('createContractModal'));
+        modal.show();
+        // If contract number was pre-filled, check its availability
+        if (cnInput && cnInput.value.trim()) {
+            checkNumber(cnInput.value.trim());
+        }
+    }
+})();
+
+(function () {
+    // Division → PM users map injected from view
+    const divisionUsers = {{ division_users_json|safe }};
+
+    // Two-tier contract type mapping
+    const typeMap = {
+        'Lumpsum':   ['Lumpsum', 'Consultancy Service', 'Works'],
+        'Framework': ['Framework', 'Consultancy Service', 'Works'],
+    };
+
+    const structureEl = document.getElementById('id_contract_structure');
+    const typeWrap    = document.getElementById('contract_type_wrap');
+    const typeEl      = document.getElementById('id_contract_type');
+    const divEl       = document.getElementById('id_division');
+    const pmList      = document.getElementById('pm_checkbox_list');
+    const supplierLabel = document.getElementById('supplier_label');
+
+    // Structure → Type
+    if (structureEl) {
+        structureEl.addEventListener('change', function () {
+            const val = this.value;
+            typeEl.innerHTML = '<option value="">— Select Type —</option>';
+            if (val && typeMap[val]) {
+                typeMap[val].forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t; opt.textContent = t;
+                    typeEl.appendChild(opt);
+                });
+                typeWrap.style.display = '';
+                typeEl.disabled = false;
+            } else {
+                typeWrap.style.display = 'none';
+                typeEl.disabled = true;
+            }
+        });
+    }
+
+    // Type → Supplier label
+    if (typeEl) {
+        typeEl.addEventListener('change', function () {
+            supplierLabel.textContent = (this.value === 'Consultancy Service')
+                ? 'Consultant Name'
+                : 'Supplier / Contractor Name';
+        });
+    }
+
+    // Division → PM checkboxes
+    if (divEl) {
+        divEl.addEventListener('change', function () {
+            const divId = this.value;
+            const users = divisionUsers[divId] || [];
+            if (!users.length) {
+                pmList.innerHTML = '<span class="text-muted small">No HOD/DM users found for this division.</span>';
+                return;
+            }
+            pmList.innerHTML = users.map(u =>
+                `<div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="project_managers" value="${u.id}" id="pm_${u.id}">
+                    <label class="form-check-label small" for="pm_${u.id}">${u.name}</label>
+                </div>`
+            ).join('');
+        });
+    }
+})();
+</script>
+
+{% endblock %}

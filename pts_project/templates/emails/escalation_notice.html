@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc3545; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
+        .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+        .footer { background-color: #f0f0f0; padding: 10px; text-align: center; font-size: 12px; }
+        .alert-box { background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; }
+        .submission-details { background-color: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .detail-row { margin: 10px 0; }
+        .label { font-weight: bold; color: #555; }
+        .button { background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px; }
+        .critical { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0;">🚨 ESCALATION NOTICE</h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear Team Lead,</p>
+            
+            <p>A high-priority submission requires immediate attention and escalation.</p>
+            
+            <div class="alert-box">
+                <p class="critical">{{ alert.title }}</p>
+                <p>{{ alert.description }}</p>
+            </div>
+            
+            <div class="submission-details">
+                <h4>Submission Details:</h4>
+                <div class="detail-row">
+                    <span class="label">Tracking Reference:</span> {{ submission.tracking_reference }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Item Name:</span> {{ submission.item_name }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Division:</span> {{ submission.division.name }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Priority:</span> <span class="critical">{{ submission.priority }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Status:</span> {{ submission.status }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Pending For:</span> <span class="critical">{{ days_pending }} days</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Budget:</span> RWF {{ submission.estimated_budget|floatformat:0 }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Submitted By:</span> {{ submission.submitted_by.full_name }}
+                </div>
+            </div>
+            
+            <h4>Immediate Action Required:</h4>
+            <p><strong>This is an escalation notice.</strong> The submission has been pending for {{ days_pending }} days and requires immediate attention from leadership. Please:</p>
+            <ul>
+                <li>Review the submission immediately</li>
+                <li>Identify any blockers or issues</li>
+                <li>Take corrective action or escalate further if necessary</li>
+                <li>Update the status in the system</li>
+            </ul>
+            
+            <a href="https://pts.rbc.gov.rw/dashboard/procurement/{{ submission.id }}/detail/" class="button">ESCALATE NOW</a>
+            
+            <hr style="margin: 30px 0;">
+            
+            <p>Best regards,<br>
+            <strong>Procurement Tracking System (PTS)</strong><br>
+            Rwanda Biomedical Center</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated escalation message. Immediate action is required.</p>
+            <p>&copy; 2026 Rwanda Biomedical Center. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

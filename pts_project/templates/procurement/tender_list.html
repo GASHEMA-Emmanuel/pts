@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tenders — {{ submission.tracking_reference }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Breadcrumb & Header -->
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'procurement_submissions' %}">Submissions</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'procurement_submission_detail' submission.id %}">{{ submission.tracking_reference }}</a></li>
+                    <li class="breadcrumb-item active">Tenders</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-0">
+                <i class="bi bi-file-earmark-text"></i> Tenders
+            </h1>
+            <p class="text-muted mb-0">{{ submission.item_name }} &mdash; {{ submission.division.name }}</p>
+        </div>
+        <div class="col-auto d-flex align-items-center gap-2">
+            {% if can_create %}
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTenderModal">
+                <i class="bi bi-plus-circle"></i> Create Tender
+            </button>
+            {% endif %}
+            <a href="{% url 'procurement_submission_detail' submission.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Submission
+            </a>
+        </div>
+    </div>
+
+    <!-- Submission Status Banner -->
+    <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+        <div>
+            Submission <strong>{{ submission.tracking_reference }}</strong> — Plan status:
+            <span class="badge bg-success ms-1">{{ submission.status }}</span>
+            &nbsp;|&nbsp; Division: <strong>{{ submission.division.name }}</strong>
+            &nbsp;|&nbsp; Budget: <strong>{{ submission.total_budget|floatformat:0 }} RWF</strong>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-primary">{{ stats.total }}</div>
+                    <div class="text-muted small">Total Tenders</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-warning">{{ stats.active }}</div>
+                    <div class="text-muted small">Active</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-danger">{{ stats.with_cbm }}</div>
+                    <div class="text-muted small">Awaiting CBM</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-2 fw-bold text-success">{{ stats.completed }}</div>
+                    <div class="text-muted small">Completed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tender List -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Tender List</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if tenders %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tender Number</th>
+                            <th>Title</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tender in tenders %}
+                        <tr>
+                            <td class="fw-semibold text-primary">{{ tender.tender_number }}</td>
+                            <td>{{ tender.tender_title|truncatechars:50 }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ tender.procurement_method }}</span></td>
+                            <td>
+                                {% if tender.status == 'Completed' %}
+                                    <span class="badge bg-success">{{ tender.status }}</span>
+                                {% elif tender.status == 'Cancelled' %}
+                                    <span class="badge bg-secondary">{{ tender.status }}</span>
+                                {% elif tender.status in 'CBM Review TD,CBM Approval' %}
+                                    <span class="badge bg-warning text-dark">{{ tender.status }}</span>
+                                {% elif tender.status == 'Awarded' %}
+                                    <span class="badge bg-primary">{{ tender.status }}</span>
+                                {% else %}
+                                    <span class="badge bg-info text-dark">{{ tender.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="min-width:120px;">
+                                <div class="progress" style="height:6px;">
+                                    <div class="progress-bar bg-primary" style="width:{{ tender.progress_percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ tender.progress_percentage }}%</small>
+                            </td>
+                            <td class="text-muted small">{{ tender.created_at|date:"d M Y" }}</td>
+                            <td>
+                                <a href="{% url 'tender_detail' tender.tender_number %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                <p class="mb-1">No tenders created yet for this plan.</p>
+                {% if can_create %}
+                <p class="small">Use the <strong>Create Tender</strong> button to add the first tender.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Create Tender Modal -->
+{% if can_create %}
+<div class="modal fade" id="createTenderModal" tabindex="-1" aria-labelledby="createTenderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTenderModalLabel">
+                    <i class="bi bi-plus-circle"></i> Create New Tender
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'tender_create' submission.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted small">Enter the Umucyo e-procurement details for this tender. Each tender is tracked independently through its own workflow.</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tender Number (Umucyo) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="tender_number" id="tenderNumberInput" placeholder="e.g. RBC/2025/001" required autocomplete="off">
+                            <div id="tenderNumberFeedback" class="form-text">Primary reference from Umucyo platform</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Procurement Method <span class="text-danger">*</span></label>
+                            <select class="form-select" name="procurement_method" required>
+                                <option value="">-- Select Method --</option>
+                                {% for method in procurement_methods %}
+                                <option value="{{ method }}">{{ method }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Tender Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="tender_title" value="{{ submission.item_name }}" required>
+                            <div class="form-text">Official title as it appears on Umucyo</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Notes (Optional)</label>
+                            <textarea class="form-control" name="notes" rows="2" placeholder="Any initial notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="createTenderSubmitBtn">
+                        <i class="bi bi-plus-circle"></i> Create Tender
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const existingNumbers = {{ all_tender_numbers_json|safe }};
+    const input   = document.getElementById('tenderNumberInput');
+    const feedback = document.getElementById('tenderNumberFeedback');
+    const submitBtn = document.getElementById('createTenderSubmitBtn');
+
+    if (!input) return;
+
+    function checkDuplicate() {
+        const val = input.value.trim();
+        if (val && existingNumbers.includes(val)) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            feedback.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Tender <strong>' + val + '</strong> already exists in the system. Please use a different number.</span>';
+            if (submitBtn) submitBtn.disabled = true;
+        } else {
+            input.classList.remove('is-invalid');
+            input.classList.toggle('is-valid', val.length > 0);
+            feedback.innerHTML = 'Primary reference from Umucyo platform';
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    input.addEventListener('input', checkDuplicate);
+    input.addEventListener('change', checkDuplicate);
+
+    // Reset on modal close
+    const modal = document.getElementById('createTenderModal');
+    if (modal) {
+        modal.addEventListener('hidden.bs.modal', function () {
+            input.value = '';
+            input.classList.remove('is-invalid', 'is-valid');
+            feedback.innerHTML = 'Primary reference from Umucyo platform';
+            if (submitBtn) submitBtn.disabled = false;
+        });
+    }
+})();
+</script>
+{% endblock %}

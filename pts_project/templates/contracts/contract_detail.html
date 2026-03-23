@@ -1,0 +1,2005 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Contract {{ contract.contract_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'contracts_list' %}">Contracts</a></li>
+            <li class="breadcrumb-item active">{{ contract.contract_number }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">{{ contract.contract_name }}</h1>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="text-muted small">{{ contract.contract_number }}</span>
+                <span class="text-muted">&bull;</span>
+                <span class="badge
+                    {% if contract.contract_type == 'Lumpsum' %}bg-info text-dark
+                    {% elif contract.contract_type == 'Framework' %}bg-warning text-dark
+                    {% elif contract.contract_type == 'Consultancy Service' %}bg-primary
+                    {% else %}bg-danger{% endif %}">
+                    {{ contract.contract_type }}
+                </span>
+                <span class="text-muted">&bull;</span>
+                <span class="badge
+                    {% if contract.status == 'Active' %}bg-success
+                    {% elif contract.status == 'Renewed' %}bg-primary
+                    {% elif contract.status == 'Completed' %}bg-secondary
+                    {% else %}bg-light text-dark border{% endif %}">
+                    {{ contract.status }}
+                </span>
+            </div>
+        </div>
+        <a href="{% url 'contracts_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> All Contracts
+        </a>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- LEFT: Contract Info + Actions -->
+        <div class="col-lg-4">
+
+            <!-- Contract Details -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-info-circle"></i> Contract Details</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0 row g-0">
+                        <dt class="col-5 text-muted small">Number</dt>
+                        <dd class="col-7 fw-semibold small">{{ contract.contract_number }}</dd>
+
+                        <dt class="col-5 text-muted small">Type</dt>
+                        <dd class="col-7 small">
+                            {{ contract.contract_type }}
+                            {% if contract.contract_structure and contract.contract_type not in 'Lumpsum,Framework' %}
+                            <span class="badge bg-light text-secondary border ms-1" title="Payment structure">{{ contract.contract_structure }}</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-5 text-muted small">Division</dt>
+                        <dd class="col-7 small">{{ contract.division.name|default:"—" }}</dd>
+
+                        {% if contract.contract_budget %}
+                        <dt class="col-5 text-muted small">Contract Amount</dt>
+                        <dd class="col-7 small fw-semibold">RWF {{ contract.contract_budget|floatformat:0 }}</dd>
+                        {% endif %}
+
+                        {% if contract.supplier_name %}
+                        <dt class="col-5 text-muted small">{% if contract.contract_type == 'Consultancy Service' %}Consultant{% else %}Supplier / Contractor{% endif %}</dt>
+                        <dd class="col-7 small">{{ contract.supplier_name }}</dd>
+                        {% endif %}
+
+                        <dt class="col-5 text-muted small">Project Manager(s)</dt>
+                        <dd class="col-7 small">
+                            {% with pms=contract.project_managers.all %}
+                            {% if pms %}
+                                {% for pm in pms %}{{ pm.full_name|default:pm.email }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% else %}—{% endif %}
+                            {% endwith %}
+                        </dd>
+
+                        <dt class="col-5 text-muted small">Created By</dt>
+                        <dd class="col-7 small">{{ contract.created_by.full_name|default:contract.created_by.email|default:"—" }}</dd>
+
+                        <dt class="col-5 text-muted small">Created</dt>
+                        <dd class="col-7 small">{{ contract.created_at|date:"d M Y" }}</dd>
+
+                        {% if contract.notes %}
+                        <dt class="col-5 text-muted small">Notes</dt>
+                        <dd class="col-7 small">{{ contract.notes }}</dd>
+                        {% endif %}
+
+                        {% if contract.document %}
+                        <dt class="col-5 text-muted small">Contract Doc</dt>
+                        <dd class="col-7 small">
+                            <a href="{{ contract.document.url }}" target="_blank" class="text-decoration-none">
+                                <i class="bi bi-file-earmark-pdf me-1 text-primary"></i>{{ contract.document.name|cut:'contracts/documents/' }}
+                            </a>
+                        </dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Actions (Procurement Team only) -->
+            {% if is_procurement and contract.status not in 'Completed,Cancelled' %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-lightning-charge"></i> Actions</h6>
+                </div>
+                <div class="card-body d-grid gap-2">
+
+                    {# ── LUMPSUM ── #}
+                    {% if contract.contract_type == 'Lumpsum' %}
+                        {# Always show Add PG button for active Lumpsum #}
+                        <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#addPGModal">
+                            <i class="bi bi-shield-plus"></i> Add Performance Guarantee
+                        </button>
+                        {% if not contract.delivery_date %}
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#setDeliveryModal">
+                            <i class="bi bi-calendar-plus"></i> Set Delivery Date
+                        </button>
+                        {% else %}
+                        {% if not contract.completion_certificate_date %}
+                        {# Receive delivery — show after delivery date #}
+                        {% if not contract.received_date %}
+                        <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#receiveDeliveryModal">
+                            <i class="bi bi-box-seam"></i> Confirm Receipt
+                        </button>
+                        {% elif not contract.evaluation_date %}
+                        {# Evaluation — shown after receipt #}
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#evaluationModal">
+                            <i class="bi bi-clipboard-check"></i> Record Evaluation
+                        </button>
+                        {% else %}
+                        {# Certificate — only after evaluation #}
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#completionCertModal">
+                            <i class="bi bi-patch-check"></i> Issue Certificate of Good Compliance
+                        </button>
+                        {% endif %}
+                        {% endif %}
+                        {% endif %}
+                    {% endif %}
+
+                    {# ── FRAMEWORK ── #}
+                    {% if contract.contract_type == 'Framework' %}
+                        {% if not contract.framework_start_date %}
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#frameworkPeriodModal">
+                            <i class="bi bi-calendar-range"></i> Set Contract Period
+                        </button>
+                        {% else %}
+                        <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#issuePOModal">
+                            <i class="bi bi-receipt"></i> Issue Purchase Order
+                        </button>
+                        {% if not contract.is_renewed and contract.framework_days_remaining is not None and contract.framework_days_remaining <= 90 %}
+                        <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#renewModal">
+                            <i class="bi bi-arrow-repeat"></i> Renew Framework (Year 2)
+                        </button>
+                        {% endif %}
+                        {% endif %}
+                    {% endif %}
+
+                    {# ── CONSULTANCY ── #}
+                    {% if contract.contract_type == 'Consultancy Service' %}
+                        {% for step in consultancy_steps %}
+                        {% if step.prev_done and not step.approved and step.key != 'payment' %}
+                            {% if not step.target %}
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#setConsultancyStepModal"
+                                    data-step-key="{{ step.key }}" data-step-label="{{ step.label }}">
+                                <i class="bi bi-calendar-event"></i> Set {{ step.label }} Date
+                            </button>
+                            {% else %}
+                            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#approveConsultancyStepModal"
+                                    data-step-key="{{ step.key }}" data-step-label="{{ step.label }}" data-step-date="{{ step.target|date:'d M Y' }}">
+                                <i class="bi bi-check-circle"></i> Approve {{ step.label }}
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#extendContractModal"
+                                    data-field="{{ step.key }}"
+                                    data-current-date="{{ step.target|date:'Y-m-d' }}"
+                                    data-current-label="{{ step.target|date:'d M Y' }}"
+                                    data-ext-count="{{ contract.extension_count }}"
+                                    data-date-label="New {{ step.label }} Date">
+                                <i class="bi bi-calendar-plus"></i> Extend {{ step.label }}
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#setAlertModal"
+                                    data-milestone-key="{{ step.key }}" data-milestone-label="{{ step.label }}"
+                                    data-current-target="{{ step.target|date:'Y-m-d' }}"
+                                    data-current-days="{{ step.alert.alert_days_before|default:7 }}">
+                                <i class="bi bi-bell"></i> {% if step.alert %}Edit Alert{% else %}Set Alert{% endif %}
+                            </button>
+                            {% endif %}
+                        {% endif %}
+                        {% if step.key == 'payment' and step.prev_done and not step.approved %}
+                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#setPaymentModal">
+                                <i class="bi bi-cash-coin"></i> Record Payment
+                            </button>
+                        {% endif %}
+                        {% endfor %}
+                    {% endif %}
+
+                    {# ── WORKS ── #}
+                    {% if contract.contract_type == 'Works' %}
+                        {% for ms in works_milestones %}
+                        {% if ms.is_started %}
+                        {# Milestone in progress — allow marking it Done or extending #}
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveMilestoneModal"
+                                data-milestone="{{ ms.name }}" data-field="{{ ms.key }}">
+                            <i class="bi bi-check2-circle"></i> Mark Done: {{ ms.name }}
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#extendContractModal"
+                                data-field="{{ ms.key }}"
+                                data-current-date="{{ ms.date|date:'Y-m-d' }}"
+                                data-current-label="{{ ms.date|date:'d M Y' }}"
+                                data-ext-count="{{ contract.extension_count }}"
+                                data-date-label="New {{ ms.name }} Date">
+                            <i class="bi bi-calendar-plus"></i> Extend {{ ms.name }}
+                        </button>
+                        {% endif %}
+                        {% if ms.is_next %}
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#setMilestoneModal"
+                                data-milestone="{{ ms.name }}" data-field="{{ ms.key }}"
+                                data-alert-date="{{ ms.alert.target_date|date:'Y-m-d'|default:'' }}"
+                                data-alert-days="{{ ms.alert.alert_days_before|default:'7' }}">
+                            <i class="bi bi-calendar-plus"></i> Set {{ ms.name }}
+                        </button>
+                        {% endif %}
+                        {% endfor %}
+                    {% endif %}
+
+                    {# ── EXTEND (Lumpsum and Framework only — Consultancy/Works extend per active step above) ── #}
+                    {% if contract.contract_type == 'Lumpsum' and contract.delivery_date and not contract.completion_certificate_date %}
+                    <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#extendContractModal"
+                            data-field=""
+                            data-current-date="{{ contract.delivery_date|date:'Y-m-d' }}"
+                            data-current-label="{{ contract.delivery_date|date:'d M Y' }}"
+                            data-ext-count="{{ contract.extension_count }}"
+                            data-date-label="New Delivery Date">
+                        <i class="bi bi-calendar-plus"></i> Extend Deadline
+                    </button>
+                    {% elif contract.contract_type == 'Framework' and contract.framework_start_date %}
+                    {% with cur_end=contract.renewal_end_date|default:contract.framework_end_date %}
+                    <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#extendContractModal"
+                            data-field=""
+                            data-current-date="{{ cur_end|date:'Y-m-d'|default:'' }}"
+                            data-current-label="{{ cur_end|date:'d M Y'|default:'not set' }}"
+                            data-ext-count="{{ contract.extension_count }}"
+                            data-date-label="New End Date">
+                        <i class="bi bi-calendar-plus"></i> Extend Contract
+                    </button>
+                    {% endwith %}
+                    {% endif %}
+
+                    <!-- Cancel -->
+                    <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                        <i class="bi bi-x-circle"></i> Cancel Contract
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- RIGHT: Workflow + History -->
+        <div class="col-lg-8">
+
+            {# ═══════════════════════════════════════════════ #}
+            {#  LUMPSUM WORKFLOW                              #}
+            {# ═══════════════════════════════════════════════ #}
+            {% if contract.contract_type == 'Lumpsum' %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-clock"></i> Lumpsum Delivery Tracking</h6>
+                </div>
+                <div class="card-body">
+                    {% if not contract.delivery_date %}
+                    <div class="text-center py-3 text-muted">
+                        <i class="bi bi-calendar2-x d-block fs-2 mb-2"></i>
+                        Delivery date not yet set.
+                        {% if is_procurement %}<br>Use the <strong>Set Delivery Date</strong> button to start the countdown.{% endif %}
+                    </div>
+                    {% else %}
+
+                    {# ── Quarter-time alert ── #}
+                    {% if countdown.is_quarter_alert and not countdown.is_overdue and not contract.completion_certificate_date %}
+                    <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                        <i class="bi bi-alarm-fill fs-5 me-2"></i>
+                        <div>
+                            <strong>Deadline Alert:</strong>
+                            Only <strong>{{ countdown.remaining }}</strong> day{{ countdown.remaining|pluralize }} remaining
+                            — less than ¼ of the contract period ({{ countdown.quarter_threshold }} d threshold).
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if countdown.is_overdue and not contract.completion_certificate_date %}
+                    <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                        <div><strong>Overdue</strong> by {{ countdown.overdue_days }} day{{ countdown.overdue_days|pluralize }}</div>
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3 align-items-center mb-3">
+                        <div class="col-sm-4">
+                            <p class="mb-0 text-muted small">Start</p>
+                            <p class="fw-semibold small mb-0">{{ countdown.start_date|date:"d M Y" }}</p>
+                        </div>
+                        <div class="col-sm-4 text-center">
+                            <p class="mb-0 text-muted small">Delivery Date</p>
+                            <p class="fs-6 fw-bold mb-0">{{ contract.delivery_date|date:"d M Y" }}</p>
+                            {% if contract.original_delivery_date %}
+                            <span class="badge bg-secondary" style="font-size:0.68rem;">Extended &times;{{ contract.extension_count }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-sm-4 text-end">
+                            {% if countdown.is_overdue %}
+                            <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-exclamation-triangle me-1"></i>Overdue</span>
+                            {% elif countdown.is_warning %}
+                            <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-alarm me-1"></i>{{ countdown.remaining }}d left</span>
+                            {% elif countdown.is_quarter_alert %}
+                            <span class="badge bg-orange text-white fs-6 px-3 py-2" style="background:#fd7e14;"><i class="bi bi-clock-history me-1"></i>{{ countdown.remaining }}d left</span>
+                            {% else %}
+                            <span class="badge bg-success fs-6 px-3 py-2"><i class="bi bi-calendar-check me-1"></i>{{ countdown.remaining }}d left</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# ── Progress bar ── #}
+                    <div class="mb-1 d-flex justify-content-between small text-muted">
+                        <span>{{ countdown.elapsed }} day{{ countdown.elapsed|pluralize }} elapsed</span>
+                        <span>{{ countdown.total_days }} days total</span>
+                    </div>
+                    <div class="progress" style="height:14px;">
+                        <div class="progress-bar
+                            {% if countdown.is_overdue %}bg-danger
+                            {% elif countdown.is_warning %}bg-warning
+                            {% elif countdown.is_quarter_alert %}bg-warning
+                            {% else %}bg-success{% endif %}"
+                            role="progressbar"
+                            style="width:{{ countdown.pct }}%;"
+                            aria-valuenow="{{ countdown.pct }}"
+                            aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                    <div class="text-center mt-1 small text-muted">
+                        {% if countdown.is_overdue %}
+                        Overdue by {{ countdown.overdue_days }} day{{ countdown.overdue_days|pluralize }}
+                        {% else %}
+                        {{ countdown.elapsed }} out of {{ countdown.total_days }} days elapsed
+                        &nbsp;&mdash;&nbsp;
+                        <strong>{{ countdown.remaining }}</strong> day{{ countdown.remaining|pluralize }} remaining
+                        {% endif %}
+                    </div>
+
+                    {# ── Delivery Receipt ── #}
+                    {% if contract.received_date %}
+                    <hr>
+                    <div class="d-flex align-items-start gap-2 p-2 rounded border border-success bg-success bg-opacity-10">
+                        <i class="bi bi-box-seam-fill text-success fs-4 flex-shrink-0 mt-1"></i>
+                        <div>
+                            <div class="small text-muted fw-semibold text-uppercase" style="letter-spacing:.04em;">Delivery Received</div>
+                            <div class="small fw-semibold">{{ contract.received_date|date:"d M Y" }}</div>
+                            {% if contract.received_notes %}<div class="small text-muted">{{ contract.received_notes }}</div>{% endif %}
+                            <div class="small text-muted">Confirmed by: {{ contract.received_by.full_name|default:contract.received_by.email|default:"—" }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# ── Evaluation ── #}
+                    {% if contract.evaluation_date %}
+                    <hr>
+                    <div class="d-flex align-items-start gap-2 p-2 rounded border border-primary bg-primary bg-opacity-10">
+                        <i class="bi bi-clipboard-check-fill text-primary fs-4 flex-shrink-0 mt-1"></i>
+                        <div>
+                            <div class="small text-muted fw-semibold text-uppercase" style="letter-spacing:.04em;">Evaluation Completed</div>
+                            <div class="small fw-semibold">{{ contract.evaluation_date|date:"d M Y" }}</div>
+                            {% if contract.evaluation_notes %}<div class="small text-muted">{{ contract.evaluation_notes }}</div>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# ── Certificate of Good Compliance ── #}
+                    {% if contract.completion_certificate_date %}
+                    <hr>
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-patch-check-fill me-2"></i>
+                        <strong>Certificate of Good Compliance issued</strong> &mdash; {{ contract.completion_certificate_date|date:"d M Y" }}
+                        {% if contract.completion_comment %}<br><span class="small text-muted">{{ contract.completion_comment }}</span>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if contract.extension_count > 0 %}
+                    <hr>
+                    <div class="small text-muted">
+                        <i class="bi bi-clock-history me-1"></i>
+                        Original deadline: <strong>{{ contract.original_delivery_date|date:"d M Y" }}</strong>
+                        &nbsp;&bull;&nbsp; Extended {{ contract.extension_count }} time{{ contract.extension_count|pluralize }}
+                        {% if contract.extension_notes %}&nbsp;&bull;&nbsp; Last reason: <em>{{ contract.extension_notes }}</em>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% endif %}{# end if delivery_date #}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ═══════════════════════════════════════════════ #}
+            {#  FRAMEWORK WORKFLOW                            #}
+            {# ═══════════════════════════════════════════════ #}
+            {% if contract.contract_type == 'Framework' %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-calendar-range"></i> Framework Period</h6>
+                    {% if contract.is_renewed %}<span class="badge bg-primary">Renewed — Year 2</span>
+                    {% elif contract.framework_start_date %}<span class="badge bg-success">Year 1 Active</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if not contract.framework_start_date %}
+                    <div class="text-center py-3 text-muted">
+                        <i class="bi bi-calendar2-x d-block fs-2 mb-2"></i>
+                        Contract period not yet set.
+                    </div>
+                    {% else %}
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted small">Year 1 Start</div>
+                            <div class="fw-semibold">{{ contract.framework_start_date|date:"d M Y" }}</div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted small">Year 1 End</div>
+                            <div class="fw-semibold">{{ contract.framework_end_date|date:"d M Y" }}</div>
+                        </div>
+                        {% if contract.is_renewed %}
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted small">Renewal Start</div>
+                            <div class="fw-semibold text-primary">{{ contract.renewal_start_date|date:"d M Y" }}</div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted small">Renewal End</div>
+                            <div class="fw-semibold text-primary">{{ contract.renewal_end_date|date:"d M Y" }}</div>
+                        </div>
+                        {% else %}
+                        <div class="col-md-6 text-center">
+                            {% with dr=contract.framework_days_remaining %}
+                            {% if dr is not None %}
+                                {% if dr < 0 %}
+                                <span class="badge bg-danger">Expired {{ dr|abs }} days ago</span>
+                                {% elif dr <= 90 %}
+                                <span class="badge bg-warning text-dark">{{ dr }} days until expiry</span>
+                                {% else %}
+                                <span class="badge bg-success">{{ dr }} days remaining</span>
+                                {% endif %}
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Purchase Orders -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-receipt"></i> Purchase Orders</h6>
+                    <span class="badge bg-primary">{{ pos.count }} PO{{ pos.count|pluralize }}</span>
+                </div>
+                <div class="card-body{% if not pos %} text-center py-4{% else %} p-3{% endif %}">
+                    {% if pos %}
+                    <div class="d-flex flex-column gap-3">
+                    {% for po in pos %}
+                    {% with pg=po.progress_data %}
+                    <div class="card border mb-0">
+                        {# ── PO header ── #}
+                        <div class="card-header bg-white py-2 d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-bold small me-1">{{ po.po_number }}</span>
+                            <span class="badge
+                                {% if po.status == 'Active' %}bg-success
+                                {% elif po.status == 'Completed' %}bg-secondary
+                                {% else %}bg-info text-dark{% endif %}"
+                                style="font-size:0.68rem;">{{ po.status }}</span>
+                            <span class="text-muted small">Issued {{ po.issued_date|date:"d M Y" }}</span>
+                            <span class="vr mx-1"></span>
+                            <span class="small">Delivery: <strong>{{ po.delivery_date|date:"d M Y" }}</strong></span>
+                            {% if po.original_delivery_date %}
+                            <span class="badge bg-secondary" style="font-size:0.63rem;">ext &times;{{ po.extension_count }}</span>
+                            {% endif %}
+                            {# deadline status badge #}
+                            {% if po.status != 'Completed' %}
+                                {% if pg.is_overdue %}<span class="badge bg-danger" style="font-size:0.63rem;"><i class="bi bi-exclamation-triangle"></i> Overdue {{ pg.overdue_days }}d</span>
+                                {% elif pg.is_quarter_alert %}<span class="badge bg-warning text-dark" style="font-size:0.63rem;"><i class="bi bi-alarm"></i> {{ pg.remaining }}d left (≤¼)</span>
+                                {% elif pg.is_warning %}<span class="badge bg-warning text-dark" style="font-size:0.63rem;">{{ pg.remaining }}d left</span>
+                                {% endif %}
+                            {% endif %}
+                            {# actions + details toggle pushed to right #}
+                            <div class="d-flex align-items-center gap-1 ms-auto">
+                                {% if is_procurement and po.status != 'Completed' %}
+                                <button class="btn btn-sm btn-outline-warning"
+                                        data-bs-toggle="modal" data-bs-target="#poExtendModal"
+                                        data-po-num="{{ po.po_number }}"
+                                        data-po-current-date="{{ po.delivery_date|date:'Y-m-d' }}"
+                                        data-extend-url="{% url 'po_extend' contract.pk po.pk %}">
+                                    <i class="bi bi-calendar-plus"></i> Extend
+                                </button>
+                                <button class="btn btn-sm btn-outline-success"
+                                        data-bs-toggle="modal" data-bs-target="#poCertModal"
+                                        data-po-num="{{ po.po_number }}"
+                                        data-po-pg="{{ po.performance_guarantee.name }}"
+                                        data-cert-url="{% url 'po_complete' contract.pk po.pk %}">
+                                    <i class="bi bi-patch-check"></i> Cert
+                                </button>
+                                {% endif %}
+                                {# PO Receive button #}
+                                {% if is_procurement and not po.received_date and po.status != 'Completed' %}
+                                <button class="btn btn-sm btn-outline-success"
+                                        data-bs-toggle="modal" data-bs-target="#poReceiveModal"
+                                        data-po-pk="{{ po.pk }}"
+                                        data-po-num="{{ po.po_number }}"
+                                        data-receive-url="{% url 'po_receive' contract.pk po.pk %}">
+                                    <i class="bi bi-box-seam"></i> Receive
+                                </button>
+                                {% elif is_procurement and po.received_date and not po.evaluation_date and po.status != 'Completed' %}
+                                <button class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal" data-bs-target="#poEvaluateModal"
+                                        data-po-pk="{{ po.pk }}"
+                                        data-po-num="{{ po.po_number }}"
+                                        data-evaluate-url="{% url 'po_evaluate' contract.pk po.pk %}">
+                                    <i class="bi bi-clipboard-check"></i> Evaluate
+                                </button>
+                                {% endif %}
+                                {# Add PG button #}
+                                {% if is_procurement and po.status != 'Completed' %}
+                                <button class="btn btn-sm btn-outline-info"
+                                        data-bs-toggle="modal" data-bs-target="#addPOPGModal"
+                                        data-po-pk="{{ po.pk }}"
+                                        data-po-num="{{ po.po_number }}"
+                                        data-pg-url="{% url 'po_add_pg' contract.pk po.pk %}">
+                                    <i class="bi bi-shield-plus"></i> Add PG
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#poDetails{{ po.pk }}"
+                                        aria-expanded="false">
+                                    <i class="bi bi-chevron-down"></i> Details
+                                </button>
+                            </div>
+                        </div>
+                        {# inline progress bar under header (active POs only) #}
+                        {% if po.status != 'Completed' %}
+                        <div class="px-3 pt-1 pb-0">
+                            <div class="d-flex justify-content-between text-muted" style="font-size:0.7rem;">
+                                <span class="text-muted">{{ pg.elapsed }} / {{ pg.total_days }} days</span>
+                                <span class="text-muted">{% if not pg.is_overdue %}{{ pg.remaining }}d left{% endif %}</span>
+                            </div>
+                            <div class="progress" style="height:5px;">
+                                <div class="progress-bar {% if pg.is_overdue %}bg-danger{% elif pg.is_quarter_alert or pg.is_warning %}bg-warning{% else %}bg-success{% endif %}"
+                                     style="width:{{ pg.pct }}%;"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {# ── Expandable Details ── #}
+                        <div class="collapse" id="poDetails{{ po.pk }}">
+                            <div class="card-body border-top">
+                                {# Description #}
+                                {% if po.description %}
+                                <p class="text-muted small mb-3"><i class="bi bi-info-circle me-1"></i>{{ po.description }}</p>
+                                {% endif %}
+                                {# PO Document #}
+                                {% if po.document %}
+                                <div class="mb-3">
+                                    <span class="fw-semibold small"><i class="bi bi-file-earmark-pdf me-1 text-primary"></i>PO Document</span>
+                                    <div class="mt-1">
+                                        <a href="{{ po.document.url }}" target="_blank" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;">
+                                            <i class="bi bi-download me-1"></i>{{ po.document.name|cut:'purchase_orders/documents/' }}
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {# Performance Guarantees (multi) #}
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="fw-semibold small"><i class="bi bi-shield-check me-1 text-info"></i>Performance Guarantees</span>
+                                        <span class="badge bg-info text-dark" style="font-size:.65rem;">{{ po.performance_guarantees.all|length }}</span>
+                                    </div>
+                                    {% for popg in po.performance_guarantees.all %}
+                                    <div class="d-flex align-items-start gap-2 p-2 rounded border border-info bg-info bg-opacity-10 mb-2">
+                                        <i class="bi bi-shield-fill-check text-info fs-5 flex-shrink-0 mt-1"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="small fw-semibold">{{ popg.filename }}</div>
+                                            {% if popg.description %}<div class="small text-muted">{{ popg.description }}</div>{% endif %}
+                                            {% if popg.expiry_date %}
+                                            <span class="badge {% if popg.is_expired %}bg-danger{% elif popg.days_to_expiry <= 30 %}bg-warning text-dark{% else %}bg-success{% endif %}" style="font-size:.65rem;">
+                                                Expires {{ popg.expiry_date|date:"d M Y" }}{% if popg.is_expired %} (Expired){% elif popg.days_to_expiry <= 30 %} ({{ popg.days_to_expiry }}d){% endif %}
+                                            </span>
+                                            {% endif %}
+                                            <div class="d-flex gap-2 mt-1">
+                                                <button class="btn btn-xs btn-outline-primary" style="font-size:.7rem;padding:.15rem .5rem;"
+                                                        data-bs-toggle="modal" data-bs-target="#pgDocPreviewModal"
+                                                        data-pg-url="{{ popg.file.url }}"
+                                                        data-pg-name="{{ popg.filename }}">
+                                                    <i class="bi bi-eye"></i> Preview
+                                                </button>
+                                                <a href="{{ popg.file.url }}" download class="btn btn-xs btn-outline-secondary" style="font-size:.7rem;padding:.15rem .5rem;">
+                                                    <i class="bi bi-download"></i> Download
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-muted small">No PGs uploaded for this PO yet.</div>
+                                    {% endfor %}
+                                </div>
+                                {# Received confirmation #}
+                                {% if po.received_date %}
+                                <div class="d-flex align-items-start gap-2 p-2 rounded border border-success bg-success bg-opacity-10 mb-3">
+                                    <i class="bi bi-box-seam-fill text-success fs-5 flex-shrink-0 mt-1"></i>
+                                    <div>
+                                        <div class="small fw-semibold text-uppercase text-muted" style="letter-spacing:.04em;">Delivery Received</div>
+                                        <div class="small fw-semibold">{{ po.received_date|date:"d M Y" }}</div>
+                                        {% if po.received_notes %}<div class="small text-muted">{{ po.received_notes }}</div>{% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {# Evaluation #}
+                                {% if po.evaluation_date %}
+                                <div class="d-flex align-items-start gap-2 p-2 rounded border border-primary bg-primary bg-opacity-10 mb-3">
+                                    <i class="bi bi-clipboard-check-fill text-primary fs-5 flex-shrink-0 mt-1"></i>
+                                    <div>
+                                        <div class="small fw-semibold text-uppercase text-muted" style="letter-spacing:.04em;">Evaluation Completed</div>
+                                        <div class="small fw-semibold">{{ po.evaluation_date|date:"d M Y" }}</div>
+                                        {% if po.evaluation_notes %}<div class="small text-muted">{{ po.evaluation_notes }}</div>{% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {# Completion cert #}
+                                {% if po.completion_certificate_date %}
+                                <div class="alert alert-success py-2 small mb-3">
+                                    <i class="bi bi-patch-check-fill me-1"></i>
+                                    <strong>Certificate of Good Compliance</strong> &mdash; {{ po.completion_certificate_date|date:"d M Y" }}
+                                    {% if po.completion_comment %}<br>{{ po.completion_comment }}{% endif %}
+                                </div>
+                                {% endif %}
+                                {# PO Comments #}
+                                <div class="mt-2">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="fw-semibold small"><i class="bi bi-chat-left-text me-1"></i>Comments</span>
+                                        <span class="badge bg-secondary" style="font-size:0.65rem;">{{ po.comments.all|length }}</span>
+                                    </div>
+                                    {# Add comment form #}
+                                    <form method="post" action="{% url 'contract_add_comment' contract.pk %}" class="mb-3">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="po_id" value="{{ po.pk }}">
+                                        <div class="input-group input-group-sm">
+                                            <textarea name="comment_text" class="form-control form-control-sm" rows="1"
+                                                      placeholder="Add a comment for {{ po.po_number }}…" required
+                                                      style="resize:vertical;"></textarea>
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-send"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                    {# Comments list for this PO #}
+                                    {% for c in po.comments.all %}
+                                    <div class="d-flex gap-2 align-items-start mb-2">
+                                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                                             style="width:28px;height:28px;font-size:0.7rem;">
+                                            {{ c.created_by.full_name|first|upper|default:"?" }}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="fw-semibold" style="font-size:0.78rem;">{{ c.created_by.full_name|default:c.created_by.email|default:"Unknown" }}</span>
+                                                <span class="text-muted" style="font-size:0.68rem;">{{ c.created_at|date:"d M Y, H:i" }}</span>
+                                            </div>
+                                            <div class="small text-secondary">{{ c.text }}</div>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-center text-muted small py-2">
+                                        <i class="bi bi-chat-left d-block mb-1"></i>No comments for this PO yet.
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                    {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-receipt d-block fs-2 mb-2"></i>
+                        No purchase orders issued yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ═══════════════════════════════════════════════ #}
+            {#  PROGRESS COMMENTS (Lumpsum only)             #}
+            {# ═══════════════════════════════════════════════ #}
+            {% if contract.contract_type == 'Lumpsum' %}
+            <div class="card border-0 shadow-sm mb-4" id="commentsSection">
+                <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-chat-left-text"></i> Progress Comments</h6>
+                    <span class="badge bg-secondary">{{ comments|length }}</span>
+                </div>
+                <div class="card-body">
+                    {# Add comment form #}
+                    {% if is_procurement %}
+                    <form method="post" action="{% url 'contract_add_comment' contract.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <textarea name="comment_text" class="form-control form-control-sm" rows="2"
+                                      placeholder="Add a progress comment…" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="bi bi-send me-1"></i>Add Comment
+                        </button>
+                    </form>
+                    <hr class="my-3">
+                    {% endif %}
+                    {# Comments list #}
+                    {% if comments %}
+                    <div class="d-flex flex-column gap-2">
+                        {% for c in comments %}
+                        <div class="d-flex gap-2 align-items-start">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:32px;height:32px;font-size:0.75rem;">
+                                {{ c.created_by.full_name|first|upper|default:"?" }}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-semibold small">{{ c.created_by.full_name|default:c.created_by.email|default:"Unknown" }}</span>
+                                    <span class="text-muted" style="font-size:0.72rem;">{{ c.created_at|date:"d M Y, H:i" }}</span>
+                                </div>
+                                <div class="small text-secondary mt-1">{{ c.text }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3 text-muted small">
+                        <i class="bi bi-chat-left d-block fs-2 mb-2"></i>
+                        No comments yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ═══════════════════════════════════════════════ #}
+            {#  CONSULTANCY SERVICE WORKFLOW                  #}
+            {# ═══════════════════════════════════════════════ #}
+            {% if contract.contract_type == 'Consultancy Service' %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-diagram-3"></i> Consultancy Workflow</h6>
+                </div>
+                <div class="card-body p-0">
+                {% for step in consultancy_steps %}
+                {% with cd=step.countdown %}
+                <div class="border-bottom p-3 {% if step.approved %}bg-success bg-opacity-10{% elif step.prev_done and not step.approved and step.target %}bg-primary bg-opacity-10{% elif step.prev_done and not step.target %}bg-light{% else %}bg-white opacity-50{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center
+                                {% if step.approved %}bg-success text-white{% elif step.prev_done and step.target %}bg-primary text-white{% elif step.prev_done %}bg-secondary text-white{% else %}bg-light text-muted border{% endif %}"
+                                style="width:34px;height:34px;font-size:0.9rem;flex-shrink:0;">
+                                {% if step.approved %}<i class="bi bi-check-lg"></i>
+                                {% elif step.prev_done and step.target %}<i class="bi bi-play-fill"></i>
+                                {% else %}<span class="small fw-bold">{{ forloop.counter }}</span>{% endif %}
+                            </div>
+                            <div>
+                                <span class="fw-semibold small">{{ step.label }}</span>
+                                {% if step.approved %}<span class="badge bg-success ms-1" style="font-size:0.68rem;">Approved</span>
+                                {% elif step.key == 'payment' and step.target %}<span class="badge bg-secondary ms-1" style="font-size:0.68rem;">Completed</span>
+                                {% elif step.prev_done and step.target %}<span class="badge bg-primary ms-1" style="font-size:0.68rem;">In Progress</span>
+                                {% elif not step.prev_done %}<span class="badge bg-light text-muted border ms-1" style="font-size:0.68rem;">Pending</span>{% endif %}
+                                {% if step.ext_count %}<span class="badge bg-secondary ms-1" style="font-size:0.63rem;">Extended &times;{{ step.ext_count }}</span>{% endif %}
+                                {% if step.alert %}<span class="badge bg-info text-dark ms-1" style="font-size:0.65rem;"><i class="bi bi-bell"></i> {{ step.alert.alert_days_before }}d alert</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end small text-muted">
+                            {% if step.target %}Target: <strong>{{ step.target|date:"d M Y" }}</strong>{% endif %}
+                        </div>
+                    </div>
+                    {% if cd and not step.approved %}
+                    <div class="mt-2">
+                        {% if cd.is_overdue %}
+                        <div class="alert alert-danger py-1 px-2 mb-2 small"><i class="bi bi-exclamation-triangle-fill me-1"></i>Overdue by {{ cd.overdue_days }} day{{ cd.overdue_days|pluralize }}</div>
+                        {% elif cd.is_quarter_alert %}
+                        <div class="alert alert-warning py-1 px-2 mb-2 small"><i class="bi bi-alarm me-1"></i>Only {{ cd.remaining }} day{{ cd.remaining|pluralize }} remaining (≤¼ of period)</div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>Day {{ cd.elapsed }} of {{ cd.total_days }}</span>
+                            {% if cd.is_overdue %}<span class="text-danger fw-bold">Overdue {{ cd.overdue_days }}d</span>
+                            {% else %}<span>{{ cd.remaining }}d left</span>{% endif %}
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if cd.is_overdue %}bg-danger{% elif cd.is_quarter_alert %}bg-warning{% else %}bg-primary{% endif %}"
+                                 style="width:{{ cd.pct }}%;" role="progressbar"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endwith %}
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ═══════════════════════════════════════════════ #}
+            {#  WORKS WORKFLOW                                #}
+            {# ═══════════════════════════════════════════════ #}
+            {% if contract.contract_type == 'Works' %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-tools"></i> Works Milestone Tracker</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% for ms in works_milestones %}
+                    <div class="border-bottom px-3 py-2 {% if ms.status == 'completed' %}bg-success bg-opacity-10{% elif ms.status == 'started' %}bg-info bg-opacity-10{% elif ms.is_next %}bg-primary bg-opacity-10{% endif %}">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0
+                                {% if ms.status == 'completed' %}bg-success text-white
+                                {% elif ms.status == 'started' %}bg-info text-white
+                                {% elif ms.is_next %}bg-primary text-white
+                                {% else %}bg-light text-muted border{% endif %}"
+                                style="width:30px;height:30px;font-size:0.8rem;">
+                                {% if ms.status == 'completed' %}<i class="bi bi-check-lg"></i>
+                                {% elif ms.status == 'started' %}<i class="bi bi-play-fill"></i>
+                                {% elif ms.is_next %}<i class="bi bi-play-fill"></i>
+                                {% else %}<span class="fw-bold" style="font-size:0.68rem;">{{ ms.step }}</span>{% endif %}
+                            </div>
+                            <div class="flex-grow-1 min-width-0">
+                                <span class="fw-semibold small">{{ ms.name }}</span>
+                                {% if ms.status == 'completed' %}
+                                    <span class="badge bg-success ms-1" style="font-size:0.63rem;">Done</span>
+                                    <span class="text-muted small ms-1">{{ ms.date|date:"d M Y" }}</span>
+                                {% elif ms.status == 'started' %}
+                                    <span class="badge bg-info text-dark ms-1" style="font-size:0.63rem;">Started</span>
+                                    <span class="text-muted small ms-1">{{ ms.date|date:"d M Y" }}</span>
+                                {% elif ms.is_next %}
+                                    <span class="badge bg-primary ms-1" style="font-size:0.63rem;">Current</span>
+                                {% else %}
+                                    <span class="badge bg-light text-muted border ms-1" style="font-size:0.63rem;">Upcoming</span>
+                                {% endif %}
+                                {% if ms.ext_count %}<span class="badge bg-secondary ms-1" style="font-size:0.63rem;">Extended &times;{{ ms.ext_count }}</span>{% endif %}
+                                {% if ms.alert %}
+                                <span class="badge bg-info text-dark ms-1" style="font-size:0.62rem;">
+                                    <i class="bi bi-bell"></i> {{ ms.alert.alert_days_before }}d &rarr; {{ ms.alert.target_date|date:"d M Y" }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {# Progress bar for active step with an alert/target date set #}
+                        {% if ms.prog %}
+                        <div class="ps-5 mt-1">
+                            {% if ms.prog.is_overdue %}
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted">Day {{ ms.prog.elapsed }} of {{ ms.prog.total_days }}</span>
+                                <span class="text-danger fw-semibold">Overdue by {{ ms.prog.overdue_days }} day{{ ms.prog.overdue_days|pluralize }}</span>
+                            </div>
+                            <div class="progress" style="height:7px;">
+                                <div class="progress-bar bg-danger" style="width:{{ ms.prog.pct }}%;" role="progressbar"></div>
+                            </div>
+                            {% else %}
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted">Day {{ ms.prog.elapsed }} of {{ ms.prog.total_days }}</span>
+                                <span class="text-muted">{{ ms.prog.remaining }}d left &rarr; {{ ms.prog.target|date:"d M Y" }}</span>
+                            </div>
+                            <div class="progress" style="height:7px;">
+                                <div class="progress-bar bg-primary" style="width:{{ ms.prog.pct }}%;" role="progressbar"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ═══════════════════════════════════════════════ #}
+            {#  PERFORMANCE GUARANTEES (all contract types)   #}
+            {# ═══════════════════════════════════════════════ #}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-shield-check"></i> Performance Guarantees</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-info text-dark">{{ pgs|length }}</span>
+                        {% if is_procurement and contract.status not in 'Completed,Cancelled' %}
+                        <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#addPGModal">
+                            <i class="bi bi-plus-circle"></i> Add PG
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if pgs %}
+                    <ul class="list-group list-group-flush">
+                        {% for pg in pgs %}
+                        <li class="list-group-item d-flex align-items-start gap-3 py-3">
+                            <i class="bi bi-shield-fill-check text-info fs-5 flex-shrink-0 mt-1"></i>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
+                                    <div>
+                                        <span class="fw-semibold small">{{ pg.filename }}</span>
+                                        {% if pg.description %}<span class="text-muted small ms-2">— {{ pg.description }}</span>{% endif %}
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        {% if pg.expiry_date %}
+                                        <span class="badge {% if pg.is_expired %}bg-danger{% elif pg.days_to_expiry <= 30 %}bg-warning text-dark{% else %}bg-success{% endif %} small">
+                                            Expires: {{ pg.expiry_date|date:"d M Y" }}
+                                            {% if pg.is_expired %}&nbsp;(Expired){% elif pg.days_to_expiry <= 30 %}&nbsp;({{ pg.days_to_expiry }}d){% endif %}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 mt-2">
+                                    <button class="btn btn-xs btn-outline-primary" style="font-size:.75rem;padding:.2rem .6rem;"
+                                            data-bs-toggle="modal" data-bs-target="#pgDocPreviewModal"
+                                            data-pg-url="{{ pg.file.url }}"
+                                            data-pg-name="{{ pg.filename }}">
+                                        <i class="bi bi-eye me-1"></i>Preview
+                                    </button>
+                                    <a href="{{ pg.file.url }}" download class="btn btn-xs btn-outline-secondary" style="font-size:.75rem;padding:.2rem .6rem;">
+                                        <i class="bi bi-download me-1"></i>Download
+                                    </a>
+                                </div>
+                                <div class="text-muted mt-1" style="font-size:.72rem;">Uploaded by {{ pg.uploaded_by.full_name|default:pg.uploaded_by.email|default:"—" }} on {{ pg.uploaded_at|date:"d M Y" }}</div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-shield-x d-block fs-2 mb-2"></i>
+                        No performance guarantees uploaded yet.
+                        {% if is_procurement %}<br><small>Use <strong>Add PG</strong> to upload one.</small>{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# ═══════════════════════════════════════════════ #}
+            {#  COMMUNICATIONS                               #}
+            {# ═══════════════════════════════════════════════ #}
+            {% if can_communicate %}
+            <div class="card border-0 shadow-sm mb-4" id="communicationsSection">
+                <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-envelope-paper"></i> Contract Communications</h6>
+                    <span class="badge bg-secondary">{{ communications|length }}</span>
+                </div>
+                <div class="card-body">
+                    {# Post new communication #}
+                    <form method="post" action="{% url 'contract_add_communication' contract.pk %}" enctype="multipart/form-data" class="mb-4">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <input type="text" name="comm_subject" class="form-control form-control-sm"
+                                   placeholder="Subject (optional)" maxlength="500">
+                        </div>
+                        <div class="mb-2">
+                            <textarea name="comm_message" class="form-control form-control-sm" rows="3"
+                                      placeholder="Write your communication here…" required></textarea>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small text-muted mb-1"><i class="bi bi-paperclip me-1"></i>Attach file (optional)</label>
+                            <input type="file" name="comm_attachment" class="form-control form-control-sm">
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="bi bi-send me-1"></i>Send Communication
+                        </button>
+                    </form>
+                    <hr class="my-3">
+                    {# Communications list #}
+                    {% if communications %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for comm in communications %}
+                        <div class="border rounded p-3 {% if forloop.first %}border-primary bg-primary bg-opacity-10{% else %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-1 mb-1">
+                                <div>
+                                    <span class="fw-semibold small">{{ comm.sent_by.full_name|default:comm.sent_by.email|default:"Unknown" }}</span>
+                                    <span class="badge bg-secondary ms-2" style="font-size:.65rem;">{{ comm.sent_by.role.name|default:"" }}</span>
+                                    {% if comm.subject %}<span class="text-muted ms-2 small">— {{ comm.subject }}</span>{% endif %}
+                                </div>
+                                <span class="text-muted" style="font-size:.72rem;">{{ comm.created_at|date:"d M Y, H:i" }}</span>
+                            </div>
+                            <div class="small text-secondary">{{ comm.message|linebreaksbr }}</div>
+                            {% if comm.attachment %}
+                            <div class="mt-2 d-flex align-items-center gap-2">
+                                <i class="bi bi-paperclip text-muted"></i>
+                                <a href="{{ comm.attachment.url }}" download class="small text-decoration-none">
+                                    {{ comm.attachment_filename }}
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3 text-muted small">
+                        <i class="bi bi-envelope d-block fs-2 mb-2"></i>
+                        No communications yet. Use the form above to add the first entry.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Activity History -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-clock-history"></i> Activity History</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if history %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr><th>Date</th><th>Action</th><th>Notes</th><th>By</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for h in history %}
+                                <tr>
+                                    <td class="text-muted small">{{ h.created_at|date:"d M Y, H:i" }}</td>
+                                    <td class="fw-semibold small">{{ h.action }}</td>
+                                    <td class="text-muted small">{{ h.notes|truncatechars:60|default:"—" }}</td>
+                                    <td class="small">{{ h.action_by.full_name|default:h.action_by.email|default:"—" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-clock-history d-block fs-2 mb-2"></i>
+                        No activity recorded yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% if is_procurement and contract.status not in 'Completed,Cancelled' %}
+<!-- ═══ ACTION MODALS ════════════════════════════════════════════ -->
+
+{% if contract.contract_type == 'Lumpsum' %}
+<!-- Set Delivery Date -->
+<div class="modal fade" id="setDeliveryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-calendar-plus"></i> Set Delivery Date</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" value="set_delivery">
+            <div class="modal-body">
+                <label class="form-label fw-semibold">Delivery Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="delivery_date" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Set Date</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- Extend Lumpsum Deadline -->
+<!-- Good Completion Certificate -->
+<div class="modal fade" id="completionCertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-patch-check"></i> Issue Certificate of Good Compliance</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}" enctype="multipart/form-data">{% csrf_token %}
+            <input type="hidden" name="action" value="issue_completion">
+            <div class="modal-body row g-3">
+                <div class="col-12">
+                    <div class="alert alert-info mb-0 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        This will mark the contract as <strong>Completed</strong>. Receipt and evaluation should be confirmed before issuing this certificate.
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Certificate Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="completion_certificate_date" value="{{ today|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Notes <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="completion_comment" rows="3" required
+                              placeholder="Describe the satisfactory completion of works / services..."></textarea>
+                </div>
+                <div class="col-12 border-top pt-3">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="lumpsumExtToggle">
+                        <label class="form-check-label small" for="lumpsumExtToggle">
+                            <i class="bi bi-calendar-plus me-1"></i> Include deadline extension (optional)
+                        </label>
+                    </div>
+                    <div id="lumpsumExtFields" style="display:none;" class="row g-2">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold">New Deadline</label>
+                            <input type="date" class="form-control form-control-sm" name="ext_delivery_date">
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label small fw-semibold">Reason for Extension</label>
+                            <input type="text" class="form-control form-control-sm" name="ext_notes"
+                                   placeholder="Brief reason...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-patch-check"></i> Issue Certificate</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('lumpsumExtToggle').addEventListener('change', function() {
+    document.getElementById('lumpsumExtFields').style.display = this.checked ? '' : 'none';
+});
+</script>
+{% endif %}
+
+<!-- Extend Contract (all types) -->
+<div class="modal fade" id="extendContractModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title text-warning"><i class="bi bi-calendar-plus"></i> Extend Contract</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" value="extend_contract">
+            <input type="hidden" name="milestone" id="extendMilestoneField" value="">
+            <div class="modal-body">
+                <div class="alert alert-warning small mb-3">
+                    <i class="bi bi-clock-history me-1"></i>
+                    Current deadline: <strong id="extendCurrentLabel"></strong>
+                    <span id="extendCountBadge"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" id="extendDateLabel">New Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="new_end_date" id="extendNewDate" required>
+                    <div class="form-text">Must be after the current deadline.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Reason for Extension <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="extension_notes" rows="3" required
+                              placeholder="Explain why the deadline is being extended..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-warning"><i class="bi bi-calendar-plus"></i> Confirm Extension</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('extendContractModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    const field    = btn.getAttribute('data-field') || '';
+    const curDate  = btn.getAttribute('data-current-date') || '';
+    const curLabel = btn.getAttribute('data-current-label') || 'not set';
+    const count    = parseInt(btn.getAttribute('data-ext-count') || '0', 10);
+    const dateLbl  = btn.getAttribute('data-date-label') || 'New Date';
+    document.getElementById('extendMilestoneField').value = field;
+    document.getElementById('extendCurrentLabel').textContent = curLabel;
+    document.getElementById('extendDateLabel').innerHTML = dateLbl + ' <span class="text-danger">*</span>';
+    const newDateEl = document.getElementById('extendNewDate');
+    newDateEl.value = '';
+    if (curDate) newDateEl.min = curDate;
+    const badge = document.getElementById('extendCountBadge');
+    badge.textContent = count > 0 ? ' \u2022 Extended ' + count + ' time' + (count !== 1 ? 's' : '') + ' already' : '';
+});
+</script>
+
+<!-- Add Performance Guarantee (all contract types) -->
+{% if is_procurement %}
+<div class="modal fade" id="addPGModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-shield-plus"></i> Add Performance Guarantee</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'contract_add_pg' contract.pk %}" enctype="multipart/form-data">{% csrf_token %}
+            <div class="modal-body row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Document <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" name="pg_file" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Expiry Date</label>
+                    <input type="date" class="form-control" name="pg_expiry_date">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Description (optional)</label>
+                    <input type="text" class="form-control" name="pg_description" maxlength="500"
+                           placeholder="e.g. Performance bond from Bank of Kigali">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-info text-white"><i class="bi bi-shield-check"></i> Upload PG</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+{% endif %}
+
+<!-- Confirm Delivery Receipt (Lumpsum) -->
+<div class="modal fade" id="receiveDeliveryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-box-seam"></i> Confirm Delivery Receipt</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'contract_receive' contract.pk %}">{% csrf_token %}
+            <div class="modal-body row g-3">
+                <div class="col-12">
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Confirm that the goods/services supplied under this contract have been received.
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Date Received <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="received_date" value="{{ today|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Notes (optional)</label>
+                    <textarea class="form-control" name="received_notes" rows="2"
+                              placeholder="Any remarks about the delivery..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-box-seam"></i> Confirm Receipt</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- Record Evaluation (Lumpsum) -->
+<div class="modal fade" id="evaluationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-clipboard-check"></i> Record Evaluation</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'contract_evaluate' contract.pk %}">{% csrf_token %}
+            <div class="modal-body row g-3">
+                <div class="col-12">
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Record that an evaluation has been carried out on the received goods/services. This step is required before issuing the Certificate of Good Compliance.
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Evaluation Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="evaluation_date" value="{{ today|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Evaluation Notes</label>
+                    <textarea class="form-control" name="evaluation_notes" rows="3"
+                              placeholder="Summary of the evaluation carried out..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-clipboard-check"></i> Save Evaluation</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+{% endif %}
+
+{% if contract.contract_type == 'Framework' %}
+<!-- Add Performance Guarantee (PO) -->
+<div class="modal fade" id="addPOPGModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="addPOPGTitle"><i class="bi bi-shield-plus"></i> Add Performance Guarantee</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" id="addPOPGForm" action="" enctype="multipart/form-data">{% csrf_token %}
+            <div class="modal-body row g-3">
+                <div class="col-12">
+                    <p class="text-muted small mb-0">PO: <strong id="addPOPGNum"></strong></p>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Document <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" name="pg_file" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Expiry Date</label>
+                    <input type="date" class="form-control" name="pg_expiry_date">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Description (optional)</label>
+                    <input type="text" class="form-control" name="pg_description" maxlength="500"
+                           placeholder="e.g. Performance bond from Bank of Kigali">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-info text-white"><i class="bi bi-shield-check"></i> Upload PG</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('addPOPGModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('addPOPGTitle').innerHTML = '<i class="bi bi-shield-plus"></i> Add PG — ' + btn.getAttribute('data-po-num');
+    document.getElementById('addPOPGNum').textContent  = btn.getAttribute('data-po-num');
+    document.getElementById('addPOPGForm').action       = btn.getAttribute('data-pg-url');
+});
+</script>
+
+<!-- PO Receive Delivery -->
+<div class="modal fade" id="poReceiveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="poReceiveTitle"><i class="bi bi-box-seam"></i> Confirm Delivery Receipt</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" id="poReceiveForm" action="">{% csrf_token %}
+            <div class="modal-body row g-3">
+                <div class="col-12"><p class="text-muted small mb-0">PO: <strong id="poReceiveNum"></strong></p></div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Date Received <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="received_date" value="{{ today|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Notes</label>
+                    <textarea class="form-control" name="received_notes" rows="2" placeholder="Remarks about the delivery..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-box-seam"></i> Confirm Receipt</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('poReceiveModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('poReceiveTitle').innerHTML = '<i class="bi bi-box-seam"></i> Confirm Receipt — ' + btn.getAttribute('data-po-num');
+    document.getElementById('poReceiveNum').textContent = btn.getAttribute('data-po-num');
+    document.getElementById('poReceiveForm').action = btn.getAttribute('data-receive-url');
+});
+</script>
+
+<!-- PO Evaluation -->
+<div class="modal fade" id="poEvaluateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="poEvaluateTitle"><i class="bi bi-clipboard-check"></i> Record Evaluation</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" id="poEvaluateForm" action="">{% csrf_token %}
+            <div class="modal-body row g-3">
+                <div class="col-12"><p class="text-muted small mb-0">PO: <strong id="poEvaluateNum"></strong></p></div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Evaluation Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="evaluation_date" value="{{ today|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Evaluation Notes</label>
+                    <textarea class="form-control" name="evaluation_notes" rows="3"
+                              placeholder="Summary of evaluation..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-clipboard-check"></i> Save Evaluation</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('poEvaluateModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('poEvaluateTitle').innerHTML = '<i class="bi bi-clipboard-check"></i> Evaluate — ' + btn.getAttribute('data-po-num');
+    document.getElementById('poEvaluateNum').textContent = btn.getAttribute('data-po-num');
+    document.getElementById('poEvaluateForm').action = btn.getAttribute('data-evaluate-url');
+});
+</script>
+{% endif %}
+
+{% if contract.contract_type == 'Framework' %}
+<!-- Set Framework Period -->
+<div class="modal fade" id="frameworkPeriodModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-calendar-range"></i> Set Contract Period</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" value="set_framework_dates">
+            <div class="modal-body">
+                <label class="form-label fw-semibold">Start Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="framework_start_date" required>
+                <div class="form-text">End date (1 year) will be calculated automatically.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Set Period</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- Renew Framework -->
+<div class="modal fade" id="renewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-arrow-repeat"></i> Renew Framework Contract</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" value="renew_framework">
+            <div class="modal-body">
+                <p class="text-muted">This will extend the framework contract by one additional year. This can only be done once.</p>
+                <p><strong>Current end date:</strong> {{ contract.framework_end_date|date:"d M Y" }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-repeat"></i> Confirm Renewal</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- Issue Purchase Order -->
+<div class="modal fade" id="issuePOModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-receipt"></i> Issue Purchase Order</h5>            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'contract_issue_po' contract.pk %}" enctype="multipart/form-data">{% csrf_token %}
+            <div class="modal-body row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-semibold">PO Number <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="po_number" required placeholder="e.g. PO/2025/001">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Description</label>
+                    <textarea class="form-control" name="description" rows="2"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Issued Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="issued_date" required value="{{ today|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Delivery Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="delivery_date" required>
+                </div>
+                <div class="col-12">
+                    <hr class="my-1">
+                    <label class="form-label fw-semibold"><i class="bi bi-file-earmark-pdf me-1 text-primary"></i>PO Document <span class="text-muted fw-normal small">(optional — can be added later)</span></label>
+                    <input type="file" class="form-control" name="po_document" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <div class="form-text">Upload the signed purchase order document (PDF, Word, or image).</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-receipt"></i> Issue PO</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- PO Completion Certificate -->
+<div class="modal fade" id="poCertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="poCertModalTitle"><i class="bi bi-patch-check"></i> Issue Completion Certificate</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" id="poCertForm" action="" enctype="multipart/form-data">{% csrf_token %}
+            <div class="modal-body row g-3">
+                <div class="col-12">
+                    <p class="text-muted mb-0">Issuing certificate for PO: <strong id="poCertPONum"></strong></p>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold"><i class="bi bi-shield-check me-1"></i>Performance Guarantee</label>
+                    <input type="file" class="form-control" name="performance_guarantee" id="poCertPGInput"
+                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <div class="form-text" id="poCertPGNote">Upload performance bond / guarantee document (PDF, Word, or image).</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Certificate Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="completion_certificate_date" value="{{ today|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Completion Comment <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="completion_comment" rows="3" required
+                              placeholder="Describe the satisfactory completion of this PO..."></textarea>
+                </div>
+                <div class="col-12 border-top pt-3">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="poCertExtToggle">
+                        <label class="form-check-label small" for="poCertExtToggle">
+                            <i class="bi bi-calendar-plus me-1"></i> Include deadline extension note (optional)
+                        </label>
+                    </div>
+                    <div id="poCertExtFields" style="display:none;" class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Extension Notes</label>
+                            <input type="text" class="form-control form-control-sm" name="cert_ext_notes"
+                                   placeholder="Brief note about any extension granted...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-patch-check"></i> Issue Certificate</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- PO Extend Deadline -->
+<div class="modal fade" id="poExtendModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title text-warning" id="poExtendModalTitle"><i class="bi bi-calendar-plus"></i> Extend PO Deadline</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" id="poExtendForm" action="">{% csrf_token %}
+            <div class="modal-body">
+                <div class="alert alert-warning small mb-3" id="poExtendCurrentDate"></div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">New Delivery Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="new_delivery_date" id="poExtendNewDate" required>
+                    <div class="form-text">Must be after the current PO delivery date.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Reason for Extension <span class="text-danger">*</span></label>
+                    <textarea class="form-control" name="extension_notes" rows="3" required
+                              placeholder="Explain why this PO deadline is being extended..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-warning"><i class="bi bi-calendar-plus"></i> Extend Deadline</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('poCertModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    const pg  = btn.getAttribute('data-po-pg') || '';
+    document.getElementById('poCertPONum').textContent = btn.getAttribute('data-po-num');
+    document.getElementById('poCertForm').action = btn.getAttribute('data-cert-url');
+    document.getElementById('poCertPGNote').textContent = pg
+        ? 'Already uploaded: ' + pg + ' — choose a new file to replace it (optional).'
+        : 'Upload performance bond / guarantee document before issuing the certificate.';
+});
+document.getElementById('poCertExtToggle').addEventListener('change', function() {
+    document.getElementById('poCertExtFields').style.display = this.checked ? '' : 'none';
+});
+document.getElementById('poExtendModal').addEventListener('show.bs.modal', function(e) {
+    const btn     = e.relatedTarget;
+    const poNum   = btn.getAttribute('data-po-num');
+    const curDate = btn.getAttribute('data-po-current-date');
+    const extUrl  = btn.getAttribute('data-extend-url');
+    document.getElementById('poExtendModalTitle').innerHTML = '<i class="bi bi-calendar-plus"></i> Extend Deadline \u2014 ' + poNum;
+    document.getElementById('poExtendCurrentDate').innerHTML = '<i class="bi bi-clock-history me-1"></i>Current deadline: <strong>' + curDate + '</strong>';
+    // Set min to the day AFTER current deadline (use local-time constructor to avoid UTC midnight offset bug)
+    function addOneDay(dateStr) {
+        const parts = dateStr.split('-').map(Number);
+        const dt = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+        return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+    }
+    document.getElementById('poExtendNewDate').min = addOneDay(curDate);
+    document.getElementById('poExtendNewDate').value = '';
+    document.getElementById('poExtendForm').action = extUrl;
+});
+</script>
+{% endif %}
+
+{% if contract.contract_type == 'Consultancy Service' %}
+<!-- Set Consultancy Step Date (generic) -->
+<div class="modal fade" id="setConsultancyStepModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="setConsultancyStepTitle"><i class="bi bi-calendar-event"></i> Set Date</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" id="setConsultancyStepAction" value="">
+            <div class="modal-body">
+                <p class="text-muted mb-2">Setting target date for: <strong id="setConsultancyStepLabel"></strong></p>
+                <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="step_date" id="setConsultancyStepDate" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-calendar-check"></i> Set Date</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('setConsultancyStepModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    const key = btn.getAttribute('data-step-key');
+    const label = btn.getAttribute('data-step-label');
+    document.getElementById('setConsultancyStepTitle').innerHTML = '<i class="bi bi-calendar-event"></i> Set ' + label + ' Date';
+    document.getElementById('setConsultancyStepLabel').textContent = label;
+    // map step key to the action name expected by contract_update_view
+    const actionMap = {inception:'set_inception', draft_report:'set_draft_report', final_report:'set_final_report', payment:'set_payment'};
+    document.getElementById('setConsultancyStepAction').value = actionMap[key] || ('set_' + key);
+    document.getElementById('setConsultancyStepDate').value = '';
+});
+</script>
+
+<!-- Approve Consultancy Step (generic) -->
+<div class="modal fade" id="approveConsultancyStepModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="approveConsultancyStepTitle"><i class="bi bi-check-circle"></i> Approve Step</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" id="approveConsultancyStepAction" value="">
+            <div class="modal-body">
+                <p class="mb-2">Approve <strong id="approveConsultancyStepLabel"></strong>?</p>
+                <p class="text-muted small">Target date: <strong id="approveConsultancyStepDate"></strong></p>
+                <div class="alert alert-info py-2 small"><i class="bi bi-info-circle me-1"></i>This will mark the step as completed and unlock the next step.</div>
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">Notes (optional)</label>
+                    <textarea class="form-control form-control-sm" name="notes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Approve</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('approveConsultancyStepModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    const key   = btn.getAttribute('data-step-key');
+    const label = btn.getAttribute('data-step-label');
+    const date  = btn.getAttribute('data-step-date');
+    document.getElementById('approveConsultancyStepTitle').innerHTML = '<i class="bi bi-check-circle"></i> Approve ' + label;
+    document.getElementById('approveConsultancyStepLabel').textContent = label;
+    document.getElementById('approveConsultancyStepDate').textContent = date || 'N/A';
+    const actionMap = {inception:'approve_inception', draft_report:'approve_draft_report', final_report:'approve_final_report'};
+    document.getElementById('approveConsultancyStepAction').value = actionMap[key] || ('approve_' + key);
+});
+</script>
+
+<!-- Record Payment -->
+<div class="modal fade" id="setPaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-cash-coin"></i> Record Payment</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" value="set_payment">
+            <div class="modal-body">
+                <p class="text-muted">Recording payment will mark this contract as <strong>Completed</strong>.</p>
+                <label class="form-label fw-semibold">Payment Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="payment_date" required value="{{ today|date:'Y-m-d' }}">
+                <div class="mb-3 mt-2">
+                    <label class="form-label fw-semibold">Notes</label>
+                    <textarea class="form-control" name="notes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-cash-coin"></i> Record Payment</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+{% endif %}
+
+<!-- Set / Edit Milestone Alert (Consultancy + Works) -->
+<div class="modal fade" id="setAlertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="setAlertTitle"><i class="bi bi-bell"></i> Set Deadline Alert</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'contract_set_alert' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="milestone_key" id="alertMilestoneKey" value="">
+            <div class="modal-body">
+                <p class="text-muted mb-3">Alert for: <strong id="alertMilestoneLabel"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Target Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="target_date" id="alertTargetDate" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Alert me <span class="text-danger">*</span> days before target</label>
+                    <input type="number" class="form-control" name="alert_days_before" id="alertDaysBefore" min="1" max="365" required>
+                    <div class="form-text">e.g. 20 means you'll be notified 20 days before the target date.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-bell-fill"></i> Save Alert</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('setAlertModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('alertMilestoneKey').value   = btn.getAttribute('data-milestone-key');
+    document.getElementById('alertMilestoneLabel').textContent = btn.getAttribute('data-milestone-label');
+    document.getElementById('alertTargetDate').value     = btn.getAttribute('data-current-target') || '';
+    document.getElementById('alertDaysBefore').value     = btn.getAttribute('data-current-days')   || 7;
+    document.getElementById('setAlertTitle').innerHTML = '<i class="bi bi-bell"></i> Set Alert — ' + btn.getAttribute('data-milestone-label');
+});
+</script>
+
+{% if contract.contract_type == 'Works' %}
+<!-- Set Works Milestone -->
+<div class="modal fade" id="setMilestoneModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="milestoneModalTitle"><i class="bi bi-calendar-plus"></i> Set Milestone Date</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" value="set_works_milestone">
+            <input type="hidden" name="milestone" id="milestoneField" value="">
+            <div class="modal-body">
+                <p class="text-muted mb-3">Recording milestone: <strong id="milestoneName"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" name="milestone_date" id="milestoneDateInput" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Notes (optional)</label>
+                    <textarea class="form-control" name="notes" rows="2"></textarea>
+                </div>
+                <hr class="my-2">
+                <p class="fw-semibold small mb-2"><i class="bi bi-bell me-1 text-info"></i>Set Alert <span class="text-muted fw-normal">(optional)</span></p>
+                <div class="row g-2">
+                    <div class="col-md-7">
+                        <label class="form-label small fw-semibold">Target / Deadline Date</label>
+                        <input type="date" class="form-control form-control-sm" name="alert_target_date" id="milestoneAlertDate">
+                        <div class="form-text">Set a deadline to track progress toward this milestone.</div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold">Notify X days before</label>
+                        <input type="number" class="form-control form-control-sm" name="alert_days_before"
+                               id="milestoneAlertDays" value="7" min="1" max="90">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Save</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('setMilestoneModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('milestoneField').value = btn.getAttribute('data-field');
+    document.getElementById('milestoneName').textContent = btn.getAttribute('data-milestone');
+    document.getElementById('milestoneModalTitle').innerHTML = '<i class="bi bi-calendar-plus"></i> Set ' + btn.getAttribute('data-milestone');
+    // Pre-fill existing alert if present
+    const alertDate = btn.getAttribute('data-alert-date') || '';
+    const alertDays = btn.getAttribute('data-alert-days') || '7';
+    const alertDateEl = document.getElementById('milestoneAlertDate');
+    alertDateEl.value = alertDate;
+    document.getElementById('milestoneAlertDays').value = alertDays;
+    // Reset milestone date
+    const milestoneDateEl = document.getElementById('milestoneDateInput');
+    milestoneDateEl.value = '';
+});
+// Mirror milestone date → Target/Deadline Date as user picks a date
+document.getElementById('milestoneDateInput').addEventListener('change', function() {
+    const alertDateEl = document.getElementById('milestoneAlertDate');
+    // Only auto-fill if the user hasn't already entered a deadline
+    if (!alertDateEl.value) {
+        alertDateEl.value = this.value;
+    }
+});
+</script>
+
+{# ── Approve (Mark Done) Milestone Modal ── #}
+<div class="modal fade" id="approveMilestoneModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="approveMilestoneTitle"><i class="bi bi-check2-circle text-success"></i> Mark Milestone Done</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" value="approve_works_milestone">
+            <input type="hidden" name="milestone" id="approveMilestoneField" value="">
+            <div class="modal-body">
+                <p class="text-muted mb-3">Marking as completed: <strong id="approveMilestoneName"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Notes (optional)</label>
+                    <textarea class="form-control" name="notes" rows="2"></textarea>
+                </div>
+                <div class="alert alert-success py-2 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    This will mark the milestone as <strong>Done</strong> and unlock the next step.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Confirm Done</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+<script>
+document.getElementById('approveMilestoneModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('approveMilestoneField').value = btn.getAttribute('data-field');
+    const name = btn.getAttribute('data-milestone');
+    document.getElementById('approveMilestoneName').textContent = name;
+    document.getElementById('approveMilestoneTitle').innerHTML = '<i class="bi bi-check2-circle text-success"></i> Mark Done: ' + name;
+});
+</script>
+{% endif %}
+
+<!-- Cancel Contract -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title text-danger"><i class="bi bi-x-circle"></i> Cancel Contract</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'contract_update' contract.pk %}">{% csrf_token %}
+            <input type="hidden" name="action" value="cancel">
+            <div class="modal-body">
+                <div class="alert alert-danger">This action cannot be undone.</div>
+                <label class="form-label fw-semibold">Reason for Cancellation</label>
+                <textarea class="form-control" name="notes" rows="3" required></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Go Back</button>
+                <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> Cancel Contract</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- Performance Guarantee Document Preview Modal (shared) -->
+<div class="modal fade" id="pgDocPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title" id="pgPreviewTitle">
+                    <i class="bi bi-shield-check me-1 text-info"></i> Performance Guarantee
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" style="height:74vh;display:flex;flex-direction:column;">
+                <!-- PDF -->
+                <div id="pgPreview-pdf" style="display:none;flex:1;flex-direction:column;">
+                    <div style="flex:1;overflow-y:auto;background:#555;padding:10px;display:flex;justify-content:center;">
+                        <canvas id="pgPdfCanvas" style="max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.4);"></canvas>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:10px;background:#f8f9fa;border-top:1px solid #dee2e6;flex-shrink:0;">
+                        <button id="pgPdfPrev" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></button>
+                        <span id="pgPdfPageInfo" class="small text-muted" style="min-width:120px;text-align:center;">Page 1 of 1</span>
+                        <button id="pgPdfNext" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </div>
+                <!-- TXT (iframe) -->
+                <div id="pgPreview-iframe" style="display:none;flex:1;">
+                    <iframe id="pgPreviewIframe" style="width:100%;height:100%;border:none;"></iframe>
+                </div>
+                <!-- Image -->
+                <div id="pgPreview-image" style="display:none;flex:1;align-items:center;justify-content:center;overflow:auto;background:#f8f9fa;padding:16px;">
+                    <img id="pgPreviewImg" src="" alt="Performance Guarantee" style="max-width:100%;max-height:100%;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.2);">
+                </div>
+                <!-- Cannot preview -->
+                <div id="pgPreview-nopreview" style="display:none;flex:1;align-items:center;justify-content:center;">
+                    <div class="text-center p-4">
+                        <i class="bi bi-file-earmark-x fs-1 text-muted mb-3 d-block"></i>
+                        <p class="text-muted mb-3">This file type cannot be previewed in the browser.</p>
+                        <a id="pgPreviewDl2" href="#" download class="btn btn-primary">
+                            <i class="bi bi-download me-1"></i> Download Document
+                        </a>
+                    </div>
+                </div>
+                <!-- Loading -->
+                <div id="pgPreview-loading" style="flex:1;align-items:center;justify-content:center;display:flex;">
+                    <div class="text-center">
+                        <div class="spinner-border text-info mb-3" role="status"></div>
+                        <p class="text-muted">Loading document&hellip;</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <a id="pgPreviewDlBtn" href="#" download class="btn btn-sm btn-primary">
+                    <i class="bi bi-download me-1"></i> Download
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function () {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    var pdfDoc = null, currentPage = 1;
+    var canvas   = document.getElementById('pgPdfCanvas');
+    var ctx      = canvas ? canvas.getContext('2d') : null;
+    var pageInfo = document.getElementById('pgPdfPageInfo');
+    var prevBtn  = document.getElementById('pgPdfPrev');
+    var nextBtn  = document.getElementById('pgPdfNext');
+
+    function showSection(id) {
+        ['pgPreview-pdf','pgPreview-iframe','pgPreview-image','pgPreview-nopreview','pgPreview-loading']
+            .forEach(function(s) {
+                var el = document.getElementById(s);
+                if (el) el.style.display = (s === id) ? 'flex' : 'none';
+            });
+    }
+
+    function renderPage(num) {
+        pdfDoc.getPage(num).then(function(page) {
+            var viewport = page.getViewport({ scale: 1.5 });
+            canvas.width  = viewport.width;
+            canvas.height = viewport.height;
+            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function() {
+                currentPage = num;
+                pageInfo.textContent = 'Page ' + num + ' of ' + pdfDoc.numPages;
+                prevBtn.disabled = num <= 1;
+                nextBtn.disabled = num >= pdfDoc.numPages;
+            });
+        });
+    }
+
+    function loadPDF(url) {
+        pdfDoc = null; currentPage = 1;
+        showSection('pgPreview-loading');
+        pdfjsLib.getDocument(url).promise.then(function(doc) {
+            pdfDoc = doc;
+            showSection('pgPreview-pdf');
+            renderPage(1);
+        }).catch(function(e) {
+            console.error('PG PDF error', e);
+            showSection('pgPreview-nopreview');
+        });
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', function() { if (currentPage > 1) renderPage(currentPage - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function() { if (pdfDoc && currentPage < pdfDoc.numPages) renderPage(currentPage + 1); });
+
+    var modal = document.getElementById('pgDocPreviewModal');
+    if (modal) {
+        modal.addEventListener('show.bs.modal', function(e) {
+            var btn  = e.relatedTarget;
+            var url  = btn.getAttribute('data-pg-url');
+            var name = btn.getAttribute('data-pg-name');
+            var ext  = (name || '').split('.').pop().toLowerCase();
+
+            document.getElementById('pgPreviewTitle').innerHTML =
+                '<i class="bi bi-shield-check me-1 text-info"></i> Performance Guarantee &mdash; ' + (name || 'Document');
+            document.getElementById('pgPreviewDlBtn').href = url;
+            document.getElementById('pgPreviewDl2').href   = url;
+
+            pdfDoc = null; currentPage = 1;
+            document.getElementById('pgPreviewIframe').src = '';
+            document.getElementById('pgPreviewImg').src    = '';
+            showSection('pgPreview-loading');
+
+            if (ext === 'pdf') {
+                loadPDF(window.location.origin + url);
+            } else if (ext === 'txt') {
+                document.getElementById('pgPreviewIframe').src = url;
+                showSection('pgPreview-iframe');
+            } else if (['jpg','jpeg','png','gif','webp','bmp'].indexOf(ext) !== -1) {
+                document.getElementById('pgPreviewImg').src = url;
+                showSection('pgPreview-image');
+            } else {
+                showSection('pgPreview-nopreview');
+            }
+        });
+        modal.addEventListener('hide.bs.modal', function() {
+            document.getElementById('pgPreviewIframe').src = '';
+            document.getElementById('pgPreviewImg').src    = '';
+            pdfDoc = null;
+        });
+    }
+})();
+</script>
+
+{% endblock %}
