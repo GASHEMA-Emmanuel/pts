@@ -43,13 +43,13 @@
         <div class="col-6 col-md-4 col-lg-2">
             <div class="card border-0 shadow-sm text-center p-3">
                 <div class="fs-3 fw-bold text-info">{{ stats.lumpsum }}</div>
-                <div class="text-muted small">Lumpsum</div>
+                <div class="text-muted small">Goods</div>
             </div>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
             <div class="card border-0 shadow-sm text-center p-3">
                 <div class="fs-3 fw-bold text-warning">{{ stats.framework }}</div>
-                <div class="text-muted small">Framework</div>
+                <div class="text-muted small">Non-consultancy services</div>
             </div>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
@@ -120,8 +120,8 @@
                             <td>{{ c.contract_name|truncatechars:50 }}</td>
                             <td>
                                 <span class="badge
-                                    {% if c.contract_type == 'Lumpsum' %}bg-info text-dark
-                                    {% elif c.contract_type == 'Framework' %}bg-warning text-dark
+                                    {% if c.contract_type == 'Goods' %}bg-info text-dark
+                                    {% elif c.contract_type == 'Non-consultancy services' %}bg-warning text-dark
                                     {% elif c.contract_type == 'Consultancy Service' %}bg-primary
                                     {% else %}bg-danger{% endif %}">
                                     {{ c.contract_type }}
@@ -147,7 +147,7 @@
                                 </span>
                             </td>
                             <td class="small text-muted">
-                                {% if c.contract_type == 'Lumpsum' and c.delivery_date %}
+                                {% if c.contract_type == 'Goods' and c.delivery_date %}
                                     Delivery: {{ c.delivery_date|date:"d M Y" }}
                                     {% with dr=c.days_until_delivery %}
                                     {% if dr is not None %}
@@ -156,7 +156,7 @@
                                         </span>
                                     {% endif %}
                                     {% endwith %}
-                                {% elif c.contract_type == 'Framework' %}
+                                {% elif c.contract_type == 'Non-consultancy services' %}
                                     Ends: {{ c.framework_active_end|date:"d M Y"|default:"Not set" }}
                                     {% if c.is_renewed %}<br><span class="badge bg-primary bg-opacity-25 text-primary small">Renewed</span>{% endif %}
                                 {% elif c.contract_type == 'Consultancy Service' %}
@@ -355,8 +355,8 @@
 
     // Two-tier contract type mapping
     const typeMap = {
-        'Lumpsum':   ['Lumpsum', 'Consultancy Service', 'Works'],
-        'Framework': ['Framework', 'Consultancy Service', 'Works'],
+        'Lumpsum': ['Goods', 'Consultancy Service', 'Works'],
+        'Framework': ['Non-consultancy services', 'Consultancy Service', 'Works'],
     };
 
     const structureEl = document.getElementById('id_contract_structure');

@@ -18438,3 +18438,132 @@ INFO 2026-03-21 20:25:45,110 basehttp 31248 28292 "GET /dashboard/cbm/compiled-d
 INFO 2026-03-21 20:25:47,667 basehttp 31248 28292 "GET /dashboard/procurement/compile-document/2/ HTTP/1.1" 200 22713
 INFO 2026-03-21 20:25:52,489 basehttp 31248 28292 "GET /media/compiled_documents/IIA_Rwanda_Member_Satisfaction_Survey_Report_2026_2.pptx.pdf HTTP/1.1" 200 1043221
 INFO 2026-03-21 20:26:20,159 basehttp 31248 28292 "GET /dashboard/ HTTP/1.1" 200 48963
+INFO 2026-03-27 14:37:59,123 autoreload 34660 33752 Watching for file changes with StatReloader
+INFO 2026-03-27 14:42:22,144 log 34660 12280 "GET / HTTP/1.1" 302 0
+INFO 2026-03-27 14:42:22,398 log 34660 12280 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-27 14:42:22,516 log 34660 25572 "GET /static/js/main.js HTTP/1.1" 200 8818
+INFO 2026-03-27 14:42:22,517 log 34660 12280 "GET /static/css/style.css HTTP/1.1" 200 18990
+WARNING 2026-03-27 14:42:23,423 log 34660 25572 Not Found: /favicon.ico
+WARNING 2026-03-27 14:42:23,425 log 34660 25572 "GET /favicon.ico HTTP/1.1" 404 4143
+INFO 2026-03-27 14:43:10,372 log 34660 25572 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-27 14:43:10,918 log 34660 25572 "GET /dashboard/ HTTP/1.1" 200 73971
+INFO 2026-03-27 14:43:40,790 log 34660 25572 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-27 14:44:02,031 log 34660 25572 "GET /dashboard/tenders/ HTTP/1.1" 200 35754
+INFO 2026-03-27 14:44:07,401 log 34660 25572 "GET /dashboard/contracts/ HTTP/1.1" 200 49637
+INFO 2026-03-27 14:44:19,741 log 34660 25572 "GET /dashboard/contracts/14/ HTTP/1.1" 200 36700
+INFO 2026-03-27 14:44:35,467 log 34660 25572 "GET /dashboard/cbm/compiled-documents/ HTTP/1.1" 200 13411
+INFO 2026-03-27 14:44:53,594 log 34660 22488 "GET /dashboard/hod/submissions/db913358-9707-481c-beb2-6f2fb7a9fee0/ HTTP/1.1" 302 0
+INFO 2026-03-27 14:44:54,133 log 34660 22488 "GET /accounts/login/?next=/dashboard/hod/submissions/db913358-9707-481c-beb2-6f2fb7a9fee0/ HTTP/1.1" 200 4409
+INFO 2026-03-27 14:44:57,313 log 34660 22488 "GET /static/css/style.css HTTP/1.1" 200 18990
+INFO 2026-03-27 14:44:57,582 log 34660 22488 "GET /static/js/main.js HTTP/1.1" 200 8818
+WARNING 2026-03-27 14:45:00,250 log 34660 22488 Not Found: /favicon.ico
+WARNING 2026-03-27 14:45:00,251 log 34660 22488 "GET /favicon.ico HTTP/1.1" 404 4143
+INFO 2026-03-27 14:45:13,276 log 34660 22488 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-27 14:45:13,761 log 34660 22488 "GET /dashboard/ HTTP/1.1" 200 56478
+INFO 2026-03-27 14:45:25,455 log 34660 22488 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-27 14:45:45,651 log 34660 22488 "GET /dashboard/contracts/ HTTP/1.1" 200 33645
+INFO 2026-03-27 14:45:51,402 log 34660 22488 "GET /dashboard/contracts/12/ HTTP/1.1" 200 38442
+INFO 2026-03-27 14:46:21,058 log 34660 1008 "GET /accounts/logout/ HTTP/1.1" 302 0
+INFO 2026-03-27 14:46:21,075 log 34660 1008 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-27 14:46:26,548 log 34660 1008 "GET /accounts/password/reset/ HTTP/1.1" 200 3433
+INFO 2026-03-27 14:46:47,615 log 34660 1008 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-27 14:46:52,868 log 34660 33680 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-27 14:46:53,220 log 34660 33680 "GET /dashboard/ HTTP/1.1" 200 56478
+INFO 2026-03-27 14:46:55,546 log 34660 33680 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-27 14:47:11,251 log 34660 29676 "GET /dashboard/procurement/compile-document/2/ HTTP/1.1" 302 0
+INFO 2026-03-27 14:47:11,272 log 34660 29676 "GET /accounts/login/?next=/dashboard/procurement/compile-document/2/ HTTP/1.1" 200 4409
+WARNING 2026-03-27 14:47:13,159 log 34660 28396 Not Found: /favicon.ico
+WARNING 2026-03-27 14:47:13,168 log 34660 28396 "GET /favicon.ico HTTP/1.1" 404 4143
+INFO 2026-03-27 14:47:19,878 log 34660 28396 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-27 14:47:20,574 log 34660 35552 "GET /dashboard/ HTTP/1.1" 200 87552
+INFO 2026-03-27 14:47:20,667 log 34660 35552 "GET /static/css/style.css HTTP/1.1" 304 0
+INFO 2026-03-27 14:47:20,764 log 34660 35552 "GET /static/js/main.js HTTP/1.1" 304 0
+INFO 2026-03-27 14:47:29,047 log 34660 35552 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-27 14:56:07,428 autoreload 34660 33752 C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\apps\accounts\views.py changed, reloading.
+INFO 2026-03-27 14:56:13,771 autoreload 19596 35740 Watching for file changes with StatReloader
+INFO 2026-03-27 14:57:18,897 log 19596 25200 "GET /accounts/logout/ HTTP/1.1" 302 0
+INFO 2026-03-27 14:57:19,104 log 19596 25200 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-27 14:57:25,454 log 19596 25200 "GET /accounts/signup/ HTTP/1.1" 200 7782
+INFO 2026-03-27 14:59:20,023 log 19596 30908 "GET /accounts/signup/ HTTP/1.1" 200 7782
+INFO 2026-03-27 14:59:20,085 log 19596 30908 "GET /static/css/style.css HTTP/1.1" 200 18990
+INFO 2026-03-27 14:59:20,086 log 19596 20544 "GET /static/js/main.js HTTP/1.1" 200 8818
+WARNING 2026-03-27 14:59:22,724 log 19596 20544 Not Found: /favicon.ico
+WARNING 2026-03-27 14:59:22,726 log 19596 20544 "GET /favicon.ico HTTP/1.1" 404 4143
+INFO 2026-03-27 15:00:43,296 log 19596 20544 "POST /accounts/signup/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:00:43,305 log 19596 20544 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-27 15:00:49,248 log 19596 20544 "POST /accounts/login/ HTTP/1.1" 200 4709
+INFO 2026-03-27 15:01:10,184 log 19596 33456 "GET /admin HTTP/1.1" 301 0
+INFO 2026-03-27 15:01:10,533 log 19596 33456 "GET /admin/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:01:10,825 log 19596 33456 "GET /admin/login/?next=/admin/ HTTP/1.1" 200 3617
+INFO 2026-03-27 15:01:10,902 log 19596 28800 "GET /static/admin/css/dark_mode.css HTTP/1.1" 200 3538
+INFO 2026-03-27 15:01:10,913 log 19596 23408 "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 200 2810
+INFO 2026-03-27 15:01:10,918 log 19596 33456 "GET /static/admin/css/base.css HTTP/1.1" 200 23100
+INFO 2026-03-27 15:01:10,920 log 19596 35640 "GET /static/admin/css/login.css HTTP/1.1" 200 951
+INFO 2026-03-27 15:01:10,923 log 19596 3940 "GET /static/admin/css/responsive.css HTTP/1.1" 200 16273
+INFO 2026-03-27 15:01:10,926 log 19596 18140 "GET /static/admin/js/theme.js HTTP/1.1" 200 1653
+INFO 2026-03-27 15:01:10,952 log 19596 18140 "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 200 3063
+INFO 2026-03-27 15:01:36,006 log 19596 26440 "POST /admin/login/?next=/admin/ HTTP/1.1" 200 3791
+INFO 2026-03-27 15:01:43,087 log 19596 26440 "POST /admin/login/?next=/admin/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:01:43,450 log 19596 26440 "GET /admin/ HTTP/1.1" 200 39065
+INFO 2026-03-27 15:01:43,518 log 19596 26440 "GET /static/admin/css/dashboard.css HTTP/1.1" 200 441
+INFO 2026-03-27 15:01:43,568 log 19596 29804 "GET /static/admin/img/icon-viewlink.svg HTTP/1.1" 200 928
+INFO 2026-03-27 15:01:43,568 log 19596 26440 "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 200 593
+INFO 2026-03-27 15:01:43,569 log 19596 35632 "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 200 978
+INFO 2026-03-27 15:01:43,572 log 19596 15536 "GET /static/admin/img/icon-deletelink.svg HTTP/1.1" 200 689
+INFO 2026-03-27 15:01:49,194 log 19596 15536 "GET / HTTP/1.1" 302 0
+INFO 2026-03-27 15:01:49,434 log 19596 15536 "GET /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:01:50,027 log 19596 15536 "GET /dashboard/ HTTP/1.1" 200 63680
+INFO 2026-03-27 15:01:56,028 log 19596 15536 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-27 15:02:08,041 log 19596 15536 "GET /dashboard/admin/users/ HTTP/1.1" 200 43825
+INFO 2026-03-27 15:02:45,467 log 19596 15536 "GET /dashboard/admin/users/?q=&role=&division=&status=inactive HTTP/1.1" 200 33032
+INFO 2026-03-27 15:03:05,079 log 19596 15536 "POST /dashboard/admin/users/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:03:05,327 log 19596 15536 "GET /dashboard/admin/users/ HTTP/1.1" 200 48107
+INFO 2026-03-27 15:03:19,462 log 19596 15260 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:03:19,926 log 19596 15260 "GET /dashboard/ HTTP/1.1" 200 29706
+INFO 2026-03-27 15:03:29,773 log 19596 15260 "GET /dashboard/hod/submissions/ HTTP/1.1" 200 23126
+INFO 2026-03-27 15:03:32,482 log 19596 15260 "GET /dashboard/contracts/ HTTP/1.1" 200 16418
+INFO 2026-03-27 15:03:34,739 log 19596 15260 "GET /dashboard/hod/reports/ HTTP/1.1" 200 28595
+INFO 2026-03-27 15:03:43,569 log 19596 15260 "GET /dashboard/ HTTP/1.1" 200 29166
+INFO 2026-03-27 15:22:53,725 log 19596 30628 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-27 15:22:57,637 log 19596 30628 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:22:58,019 log 19596 30628 "GET /dashboard/ HTTP/1.1" 200 87552
+INFO 2026-03-27 15:23:01,396 log 19596 30628 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-27 15:23:12,320 log 19596 30628 "GET /dashboard/tenders/ HTTP/1.1" 200 41061
+INFO 2026-03-27 15:23:17,371 log 19596 30628 "GET /dashboard/contracts/ HTTP/1.1" 200 56865
+INFO 2026-03-27 15:31:13,188 autoreload 19596 35740 C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\apps\contracts\models.py changed, reloading.
+INFO 2026-03-27 15:31:18,906 autoreload 7736 10320 Watching for file changes with StatReloader
+INFO 2026-03-27 15:31:57,171 autoreload 7736 10320 C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\apps\contracts\models.py changed, reloading.
+INFO 2026-03-27 15:32:00,505 autoreload 24756 17128 Watching for file changes with StatReloader
+INFO 2026-03-27 15:33:09,097 log 24756 35636 "GET /dashboard/contracts/ HTTP/1.1" 200 55025
+INFO 2026-03-27 15:33:59,985 log 24756 35636 "GET /dashboard/contracts/ HTTP/1.1" 200 55025
+INFO 2026-03-27 15:34:04,731 log 24756 35636 "GET /dashboard/contracts/ HTTP/1.1" 200 55025
+INFO 2026-03-27 15:38:35,340 autoreload 24756 17128 C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\apps\contracts\views.py changed, reloading.
+INFO 2026-03-27 15:38:39,008 autoreload 30928 30636 Watching for file changes with StatReloader
+INFO 2026-03-27 15:41:39,766 log 30928 15448 "GET /dashboard/contracts/ HTTP/1.1" 200 54174
+INFO 2026-03-27 15:42:18,643 log 30928 15448 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F019 HTTP/1.1" 200 49
+INFO 2026-03-27 15:42:21,945 log 30928 15448 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F01 HTTP/1.1" 200 49
+INFO 2026-03-27 15:42:22,626 log 30928 15448 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F012 HTTP/1.1" 200 49
+INFO 2026-03-27 15:42:23,056 log 30928 15448 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F01 HTTP/1.1" 200 49
+INFO 2026-03-27 15:42:24,053 log 30928 15448 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F012 HTTP/1.1" 200 49
+INFO 2026-03-27 15:42:25,492 log 30928 15448 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F01 HTTP/1.1" 200 49
+INFO 2026-03-27 15:42:29,511 log 30928 15448 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F018 HTTP/1.1" 200 50
+INFO 2026-03-27 15:43:05,835 log 30928 15448 "POST /dashboard/contracts/create/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:43:06,111 log 30928 15448 "GET /dashboard/contracts/18/ HTTP/1.1" 200 59393
+ERROR 2026-03-27 15:43:27,918 log 30928 15448 Internal Server Error: /dashboard/contracts/18/update/
+Traceback (most recent call last):
+  File "C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\.venv\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\apps\contracts\views.py", line 509, in contract_update_view
+    contract.framework_end_date = contract.framework_start_date + timedelta(days=365)
+                                                                  ^^^^^^^^^
+UnboundLocalError: cannot access local variable 'timedelta' where it is not associated with a value
+ERROR 2026-03-27 15:43:27,922 log 30928 15448 "POST /dashboard/contracts/18/update/ HTTP/1.1" 500 92319
+INFO 2026-03-27 15:44:28,973 autoreload 30928 30636 C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\apps\contracts\views.py changed, reloading.
+INFO 2026-03-27 15:44:31,597 autoreload 34232 24472 Watching for file changes with StatReloader

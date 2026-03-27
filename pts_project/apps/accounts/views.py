@@ -349,10 +349,20 @@ class LoginView(View):
             next_url = request.GET.get('next', '/dashboard/')
             return redirect(next_url)
         else:
+            # Check if the user exists but is inactive (pending admin activation)
+            try:
+                existing_user = User.objects.get(email=email)
+                if not existing_user.is_active:
+                    error_msg = 'Your account is pending admin activation. Please contact the administrator.'
+                else:
+                    error_msg = 'Invalid email or password.'
+            except User.DoesNotExist:
+                error_msg = 'Invalid email or password.'
+
             return render(
                 request,
                 self.template_name,
-                {'error': 'Invalid email or password.'}
+                {'error': error_msg}
             )
 
 
@@ -464,9 +474,9 @@ class SignupView(View):
                 ip_address=get_client_ip(request)
             )
             
-            # Redirect to login page with success message
+            # Redirect to login page with pending-activation message
             from django.contrib import messages
-            messages.success(request, 'Account created successfully! Please log in with your credentials.')
+            messages.success(request, 'Account created successfully! Your account is awaiting admin activation. You will be able to log in once an administrator activates your account.')
             return redirect('/accounts/login/')
         except Division.DoesNotExist:
             context = {

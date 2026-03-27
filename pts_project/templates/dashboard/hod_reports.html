@@ -616,8 +616,8 @@
                                 {% for ct in contracts_by_type %}
                                 <tr>
                                     <td>
-                                        {% if ct.contract_type == 'Lumpsum' %}<span class="badge bg-primary">Lumpsum</span>
-                                        {% elif ct.contract_type == 'Framework' %}<span class="badge bg-info text-dark">Framework</span>
+                                        {% if ct.contract_type == 'Goods' %}<span class="badge bg-primary">Goods</span>
+                                        {% elif ct.contract_type == 'Non-consultancy services' %}<span class="badge bg-info text-dark">Non-consultancy services</span>
                                         {% elif ct.contract_type == 'Consultancy Service' %}<span class="badge bg-warning text-dark">Consultancy</span>
                                         {% elif ct.contract_type == 'Works' %}<span class="badge bg-secondary">Works</span>
                                         {% else %}<span class="badge bg-light text-dark border">{{ ct.contract_type }}</span>{% endif %}
@@ -662,8 +662,8 @@
                             <td class="small">{{ c.contract_name|truncatewords:5 }}</td>
                             <td class="small text-muted">{{ c.supplier_name|truncatewords:3 }}</td>
                             <td>
-                                {% if c.contract_type == 'Lumpsum' %}<span class="badge bg-primary">Lumpsum</span>
-                                {% elif c.contract_type == 'Framework' %}<span class="badge bg-info text-dark">Framework</span>
+                                {% if c.contract_type == 'Goods' %}<span class="badge bg-primary">Goods</span>
+                                {% elif c.contract_type == 'Non-consultancy services' %}<span class="badge bg-info text-dark">Non-consultancy services</span>
                                 {% elif c.contract_type == 'Consultancy Service' %}<span class="badge bg-warning text-dark">Consultancy</span>
                                 {% elif c.contract_type == 'Works' %}<span class="badge bg-secondary">Works</span>
                                 {% else %}<span class="badge bg-light text-dark border">{{ c.contract_type }}</span>{% endif %}

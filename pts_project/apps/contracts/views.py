@@ -74,8 +74,8 @@ def contracts_list_view(request):
         'total':      Contract.objects.count(),
         'active':     Contract.objects.filter(status='Active').count(),
         'completed':  Contract.objects.filter(status='Completed').count(),
-        'lumpsum':    Contract.objects.filter(contract_type='Lumpsum').count(),
-        'framework':  Contract.objects.filter(contract_type='Framework').count(),
+        'lumpsum':    Contract.objects.filter(contract_type='Goods').count(),
+        'framework':  Contract.objects.filter(contract_type='Non-consultancy services').count(),
         'consultancy': Contract.objects.filter(contract_type='Consultancy Service').count(),
         'works':      Contract.objects.filter(contract_type='Works').count(),
     }
@@ -200,7 +200,7 @@ def contract_detail_view(request, pk):
     history  = ContractHistory.objects.filter(contract=contract).order_by('-created_at')[:30]
     # Contract-level comments (Lumpsum) — those not tied to a specific PO
     comments = ContractComment.objects.filter(contract=contract, purchase_order__isnull=True).select_related('created_by').order_by('-created_at')
-    pos      = contract.purchase_orders.all().prefetch_related('comments__created_by', 'performance_guarantees') if contract.contract_type == 'Framework' else None
+    pos      = contract.purchase_orders.all().prefetch_related('comments__created_by', 'performance_guarantees') if contract.contract_type == 'Non-consultancy services' else None
     # Per-PO comment map for Framework: {po.pk: [comments]}
     po_comments_map = {}
     if pos is not None:
@@ -326,7 +326,7 @@ def contract_detail_view(request, pk):
             })
 
     # Lumpsum countdown
-    countdown = contract.lumpsum_progress_data if contract.contract_type == 'Lumpsum' else None
+    countdown = contract.lumpsum_progress_data if contract.contract_type == 'Goods' else None
 
     # Fire any pending milestone alerts (passive check on page load)
     if _is_pt(request.user):
@@ -428,7 +428,6 @@ def contract_update_view(request, pk):
                 return redirect('contract_detail', pk=pk)
             # Shift the milestone's alert target_date by the same delta
             if current_date and new_date:
-                from datetime import timedelta
                 from .models import ContractMilestoneAlert
                 shift_days = (new_date - current_date).days
                 alert_to_shift = ContractMilestoneAlert.objects.filter(
@@ -457,15 +456,15 @@ def contract_update_view(request, pk):
         else:
             # Contract-level extend (Lumpsum / Framework)
             _type_field = {
-                'Lumpsum':   'delivery_date',
-                'Framework': 'renewal_end_date' if contract.is_renewed else 'framework_end_date',
+                'Goods':     'delivery_date',
+                'Non-consultancy services': 'renewal_end_date' if contract.is_renewed else 'framework_end_date',
             }
             _field = _type_field.get(contract.contract_type, 'delivery_date')
             current_date = getattr(contract, _field, None)
             if not new_date or (current_date and new_date <= current_date):
                 messages.error(request, 'New date must be after the current deadline.')
                 return redirect('contract_detail', pk=pk)
-            if contract.contract_type == 'Lumpsum' and not contract.original_delivery_date:
+            if contract.contract_type == 'Goods' and not contract.original_delivery_date:
                 contract.original_delivery_date = current_date
             setattr(contract, _field, new_date)
             contract.extension_count = (contract.extension_count or 0) + 1
@@ -476,7 +475,7 @@ def contract_update_view(request, pk):
             _trigger_contract_change(contract,
                 f'Deadline Extended \u2014 {contract.contract_number}',
                 f'New deadline: {new_date} (extension #{contract.extension_count}). Reason: {ext_notes}.')
-            if contract.contract_type == 'Lumpsum':
+            if contract.contract_type == 'Goods':
                 _trigger_quarter_alert_if_needed(contract)
 
     elif action == 'set_performance_guarantee':
@@ -688,8 +687,8 @@ def contract_issue_po_view(request, pk):
     from .models import Contract, PurchaseOrder, ContractHistory
 
     contract = get_object_or_404(Contract, pk=pk)
-    if contract.contract_type != 'Framework':
-        messages.error(request, 'Purchase orders are only for Framework contracts.')
+    if contract.contract_type != 'Non-consultancy services':
+        messages.error(request, 'Purchase orders are only for Non-consultancy services contracts.')
         return redirect('contract_detail', pk=pk)
 
     po_number   = request.POST.get('po_number', '').strip()

@@ -165,7 +165,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     )
     
     # User status
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)  # Requires admin activation
     is_staff = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
     

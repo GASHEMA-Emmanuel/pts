@@ -23,8 +23,8 @@
                 <span class="text-muted small">{{ contract.contract_number }}</span>
                 <span class="text-muted">&bull;</span>
                 <span class="badge
-                    {% if contract.contract_type == 'Lumpsum' %}bg-info text-dark
-                    {% elif contract.contract_type == 'Framework' %}bg-warning text-dark
+                    {% if contract.contract_type == 'Goods' %}bg-info text-dark
+                    {% elif contract.contract_type == 'Non-consultancy services' %}bg-warning text-dark
                     {% elif contract.contract_type == 'Consultancy Service' %}bg-primary
                     {% else %}bg-danger{% endif %}">
                     {{ contract.contract_type }}
@@ -62,7 +62,7 @@
                         <dt class="col-5 text-muted small">Type</dt>
                         <dd class="col-7 small">
                             {{ contract.contract_type }}
-                            {% if contract.contract_structure and contract.contract_type not in 'Lumpsum,Framework' %}
+                            {% if contract.contract_structure and contract.contract_type not in 'Goods,Non-consultancy services' %}
                             <span class="badge bg-light text-secondary border ms-1" title="Payment structure">{{ contract.contract_structure }}</span>
                             {% endif %}
                         </dd>
@@ -120,8 +120,8 @@
                 </div>
                 <div class="card-body d-grid gap-2">
 
-                    {# ── LUMPSUM ── #}
-                    {% if contract.contract_type == 'Lumpsum' %}
+                    {# ── GOODS ── #}
+                    {% if contract.contract_type == 'Goods' %}
                         {# Always show Add PG button for active Lumpsum #}
                         <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#addPGModal">
                             <i class="bi bi-shield-plus"></i> Add Performance Guarantee
@@ -152,8 +152,8 @@
                         {% endif %}
                     {% endif %}
 
-                    {# ── FRAMEWORK ── #}
-                    {% if contract.contract_type == 'Framework' %}
+                    {# ── NON-CONSULTANCY SERVICES ── #}
+                    {% if contract.contract_type == 'Non-consultancy services' %}
                         {% if not contract.framework_start_date %}
                         <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#frameworkPeriodModal">
                             <i class="bi bi-calendar-range"></i> Set Contract Period
@@ -237,8 +237,8 @@
                         {% endfor %}
                     {% endif %}
 
-                    {# ── EXTEND (Lumpsum and Framework only — Consultancy/Works extend per active step above) ── #}
-                    {% if contract.contract_type == 'Lumpsum' and contract.delivery_date and not contract.completion_certificate_date %}
+                    {# ── EXTEND (Goods and Non-consultancy services only — Consultancy/Works extend per active step above) ── #}
+                    {% if contract.contract_type == 'Goods' and contract.delivery_date and not contract.completion_certificate_date %}
                     <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#extendContractModal"
                             data-field=""
                             data-current-date="{{ contract.delivery_date|date:'Y-m-d' }}"
@@ -247,7 +247,7 @@
                             data-date-label="New Delivery Date">
                         <i class="bi bi-calendar-plus"></i> Extend Deadline
                     </button>
-                    {% elif contract.contract_type == 'Framework' and contract.framework_start_date %}
+                    {% elif contract.contract_type == 'Non-consultancy services' and contract.framework_start_date %}
                     {% with cur_end=contract.renewal_end_date|default:contract.framework_end_date %}
                     <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#extendContractModal"
                             data-field=""
@@ -274,12 +274,12 @@
         <div class="col-lg-8">
 
             {# ═══════════════════════════════════════════════ #}
-            {#  LUMPSUM WORKFLOW                              #}
+            {#  GOODS WORKFLOW                                #}
             {# ═══════════════════════════════════════════════ #}
-            {% if contract.contract_type == 'Lumpsum' %}
+            {% if contract.contract_type == 'Goods' %}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-bottom">
-                    <h6 class="mb-0 fw-semibold"><i class="bi bi-clock"></i> Lumpsum Delivery Tracking</h6>
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-clock"></i> Goods Delivery Tracking</h6>
                 </div>
                 <div class="card-body">
                     {% if not contract.delivery_date %}
@@ -413,12 +413,12 @@
             {% endif %}
 
             {# ═══════════════════════════════════════════════ #}
-            {#  FRAMEWORK WORKFLOW                            #}
+            {#  NON-CONSULTANCY SERVICES WORKFLOW             #}
             {# ═══════════════════════════════════════════════ #}
-            {% if contract.contract_type == 'Framework' %}
+            {% if contract.contract_type == 'Non-consultancy services' %}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-semibold"><i class="bi bi-calendar-range"></i> Framework Period</h6>
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-calendar-range"></i> Contract Period</h6>
                     {% if contract.is_renewed %}<span class="badge bg-primary">Renewed — Year 2</span>
                     {% elif contract.framework_start_date %}<span class="badge bg-success">Year 1 Active</span>
                     {% endif %}
@@ -707,9 +707,9 @@
             {% endif %}
 
             {# ═══════════════════════════════════════════════ #}
-            {#  PROGRESS COMMENTS (Lumpsum only)             #}
+            {#  PROGRESS COMMENTS (Goods only)               #}
             {# ═══════════════════════════════════════════════ #}
-            {% if contract.contract_type == 'Lumpsum' %}
+            {% if contract.contract_type == 'Goods' %}
             <div class="card border-0 shadow-sm mb-4" id="commentsSection">
                 <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
                     <h6 class="mb-0 fw-semibold"><i class="bi bi-chat-left-text"></i> Progress Comments</h6>
@@ -1058,7 +1058,7 @@
 {% if is_procurement and contract.status not in 'Completed,Cancelled' %}
 <!-- ═══ ACTION MODALS ════════════════════════════════════════════ -->
 
-{% if contract.contract_type == 'Lumpsum' %}
+{% if contract.contract_type == 'Goods' %}
 <!-- Set Delivery Date -->
 <div class="modal fade" id="setDeliveryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog"><div class="modal-content">
@@ -1287,7 +1287,7 @@ document.getElementById('extendContractModal').addEventListener('show.bs.modal',
 </div>
 {% endif %}
 
-{% if contract.contract_type == 'Framework' %}
+{% if contract.contract_type == 'Non-consultancy services' %}
 <!-- Add Performance Guarantee (PO) -->
 <div class="modal fade" id="addPOPGModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog"><div class="modal-content">
@@ -1402,7 +1402,7 @@ document.getElementById('poEvaluateModal').addEventListener('show.bs.modal', fun
 </script>
 {% endif %}
 
-{% if contract.contract_type == 'Framework' %}
+{% if contract.contract_type == 'Non-consultancy services' %}
 <!-- Set Framework Period -->
 <div class="modal fade" id="frameworkPeriodModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog"><div class="modal-content">

@@ -18,8 +18,8 @@ from django.utils import timezone
 
 class Contract(models.Model):
     CONTRACT_TYPE_CHOICES = [
-        ('Lumpsum', 'Lumpsum'),
-        ('Framework', 'Framework'),
+        ('Goods', 'Goods'),
+        ('Non-consultancy services', 'Non-consultancy services'),
         ('Consultancy Service', 'Consultancy Service'),
         ('Works', 'Works'),
     ]
@@ -41,9 +41,9 @@ class Contract(models.Model):
     contract_name      = models.CharField(max_length=500)
     contract_type      = models.CharField(max_length=50, choices=CONTRACT_TYPE_CHOICES)
     contract_structure = models.CharField(
-        max_length=20, choices=CONTRACT_STRUCTURE_CHOICES,
+        max_length=30, choices=CONTRACT_STRUCTURE_CHOICES,
         blank=True, default='',
-        help_text='Lumpsum or Framework — the payment structure for Consultancy/Works contracts.',
+        help_text='Lumpsum or Framework — the payment structure for Consultancy/Works contracts.'
     )
     status             = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Active')
     notes              = models.TextField(blank=True)
