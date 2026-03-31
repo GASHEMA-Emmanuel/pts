@@ -256,12 +256,15 @@ EMAIL_BACKEND = config(
     'EMAIL_BACKEND',
     default='django.core.mail.backends.smtp.EmailBackend'
 )
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST = config('SMTP_SERVER', default='mail.rbc.gov.rw')
+EMAIL_PORT = config('SMTP_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='emmygashema@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='emmygashema@gmail.com')
+EMAIL_HOST_USER = config('SENDER_EMAIL', default='notifications@rbc.gov.rw')
+EMAIL_HOST_PASSWORD = config('SENDER_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = '{} <{}>'.format(
+    config('SENDER_NAME', default='RBC - RIDS'),
+    config('SENDER_EMAIL', default='notifications@rbc.gov.rw'),
+)
 
 # Celery Configuration
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')

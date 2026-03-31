@@ -27,17 +27,26 @@
 </div>
 
 <!-- KPI Row -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-4 col-xl-2">
+<div class="row g-2 mb-4 flex-nowrap overflow-auto">
+    <div class="col-6 col-md-4 col-xl">
         <div class="kpi-card h-100">
             <div class="kpi-content">
-                <div class="kpi-label">Active Calls</div>
-                <div class="kpi-value text-primary">{{ stats.active_calls|default:"0" }}</div>
+                <div class="kpi-label">Open Calls</div>
+                <div class="kpi-value text-primary">{{ stats.open_calls|default:"0" }}</div>
             </div>
             <div class="kpi-icon bg-primary-subtle"><i class="bi bi-megaphone"></i></div>
         </div>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
+    <div class="col-6 col-md-4 col-xl">
+        <div class="kpi-card h-100 {% if stats.past_deadline_calls > 0 %}border-secondary{% endif %}">
+            <div class="kpi-content">
+                <div class="kpi-label">Past Deadline</div>
+                <div class="kpi-value {% if stats.past_deadline_calls > 0 %}text-secondary{% else %}text-muted{% endif %}">{{ stats.past_deadline_calls|default:"0" }}</div>
+            </div>
+            <div class="kpi-icon {% if stats.past_deadline_calls > 0 %}bg-secondary-subtle{% else %}bg-light{% endif %}"><i class="bi bi-calendar-x"></i></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
         <div class="kpi-card h-100 {% if stats.awaiting_cbm_action > 0 %}border-danger{% endif %}">
             <div class="kpi-content">
                 <div class="kpi-label">Awaiting CBM Action</div>
@@ -50,7 +59,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
+    <div class="col-6 col-md-4 col-xl">
         <div class="kpi-card h-100">
             <div class="kpi-content">
                 <div class="kpi-label">Tenders in Progress</div>
@@ -59,7 +68,7 @@
             <div class="kpi-icon bg-info-subtle"><i class="bi bi-file-earmark-text"></i></div>
         </div>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
+    <div class="col-6 col-md-4 col-xl">
         <div class="kpi-card h-100">
             <div class="kpi-content">
                 <div class="kpi-label">Active Contracts</div>
@@ -68,7 +77,7 @@
             <div class="kpi-icon bg-success-subtle"><i class="bi bi-file-earmark-check"></i></div>
         </div>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
+    <div class="col-6 col-md-4 col-xl">
         <div class="kpi-card h-100 {% if stats.overdue_contracts > 0 %}border-warning{% endif %}">
             <div class="kpi-content">
                 <div class="kpi-label">Overdue Contracts</div>
@@ -81,7 +90,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
+    <div class="col-6 col-md-4 col-xl">
         <div class="kpi-card h-100">
             <div class="kpi-content">
                 <div class="kpi-label">Budget in Pipeline</div>
@@ -240,13 +249,13 @@
     </div>
 </div>
 
-<!-- Row 4: Active Calls + Recent Activity -->
+<!-- Row 4: Active Calls + Past-Deadline Calls + Recent Activity -->
 <div class="row g-4 mb-4">
-    <!-- Active Calls with Division Progress -->
+    <!-- Open Calls with Division Progress -->
     <div class="col-lg-7">
-        <div class="card h-100">
+        <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-megaphone me-2 text-info"></i>Active Procurement Calls</h5>
+                <h5 class="mb-0"><i class="bi bi-megaphone me-2 text-info"></i>Open Procurement Calls</h5>
                 <a href="{% url 'cbm_calls' %}" class="btn btn-sm btn-outline-secondary">Manage</a>
             </div>
             <div class="card-body p-0">
@@ -274,10 +283,40 @@
                     {% endfor %}
                 </ul>
                 {% else %}
-                <div class="text-center text-muted py-4">No active procurement calls</div>
+                <div class="text-center text-muted py-4">No open procurement calls</div>
                 {% endif %}
             </div>
         </div>
+
+        <!-- Past-Deadline Calls -->
+        {% if past_deadline_calls_data %}
+        <div class="card border-secondary-subtle">
+            <div class="card-header d-flex justify-content-between align-items-center bg-secondary-subtle">
+                <h5 class="mb-0 text-secondary"><i class="bi bi-calendar-x me-2"></i>Submission Window Closed</h5>
+                <a href="{% url 'cbm_calls' %}" class="btn btn-sm btn-outline-secondary">Manage</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for call in past_deadline_calls_data %}
+                    <li class="list-group-item py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold small">{{ call.title }}</div>
+                                <div class="text-muted" style="font-size:.75rem;">
+                                    <code>{{ call.reference_number }}</code> &middot; Closed {{ call.end_date|date:"d M Y" }}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-secondary">{{ call.total_submissions }}</div>
+                                <div class="text-muted" style="font-size:.75rem;">submissions</div>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Recent Activity Feed -->

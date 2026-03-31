@@ -18567,3 +18567,199 @@ UnboundLocalError: cannot access local variable 'timedelta' where it is not asso
 ERROR 2026-03-27 15:43:27,922 log 30928 15448 "POST /dashboard/contracts/18/update/ HTTP/1.1" 500 92319
 INFO 2026-03-27 15:44:28,973 autoreload 30928 30636 C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\apps\contracts\views.py changed, reloading.
 INFO 2026-03-27 15:44:31,597 autoreload 34232 24472 Watching for file changes with StatReloader
+INFO 2026-03-27 15:45:05,801 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[7c64b8c5-9c2c-4a2f-b8c5-43d5ae40e8f7] succeeded in 4.375s: {'status': 'sent', 'email': 'mugaboalice2@gmail.com'}
+INFO 2026-03-27 15:45:05,801 signals 34232 26004 Queued email sending for notification a6d1c388-6c91-4bd5-997a-2f7c597c6bea to mugaboalice2@gmail.com
+INFO 2026-03-27 15:45:09,094 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[815f3746-7c1c-431a-b3e0-b3df10fcaa9f] succeeded in 3.2810000000026776s: {'status': 'sent', 'email': 'emmanuelalliance123@gmail.com'}
+INFO 2026-03-27 15:45:09,094 signals 34232 26004 Queued email sending for notification 7aa5882b-2374-460a-906c-6e1bbad55839 to emmanuelalliance123@gmail.com
+INFO 2026-03-27 15:45:12,466 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[6bd0d683-3013-45cf-9964-1d365e6e9118] succeeded in 3.375s: {'status': 'sent', 'email': 'egashema133@gmail.com'}
+INFO 2026-03-27 15:45:12,468 signals 34232 26004 Queued email sending for notification d2ccace6-afbf-48c4-8d4a-37041479835e to egashema133@gmail.com
+INFO 2026-03-27 15:45:15,759 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[09e153e3-12fe-4013-aba3-87f7481f3e86] succeeded in 3.2969999999913853s: {'status': 'sent', 'email': 'manuclaude089@gmail.com'}
+INFO 2026-03-27 15:45:15,760 signals 34232 26004 Queued email sending for notification bbb2d9b0-a0d6-4780-95b9-1c23acaa033a to manuclaude089@gmail.com
+INFO 2026-03-27 15:45:15,880 log 34232 26004 "POST /dashboard/contracts/18/update/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:45:16,199 log 34232 26004 "GET /dashboard/contracts/18/ HTTP/1.1" 200 61227
+INFO 2026-03-27 15:45:37,307 log 34232 26004 "GET /dashboard/contracts/ HTTP/1.1" 200 56019
+INFO 2026-03-27 15:45:44,397 log 34232 26004 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F018 HTTP/1.1" 200 49
+INFO 2026-03-27 15:45:47,257 log 34232 26004 "GET /dashboard/contracts/check-number/?number=RBC%2F2025%2FPPMU%2FG%2F022 HTTP/1.1" 200 50
+INFO 2026-03-27 15:46:12,771 log 34232 26004 "POST /dashboard/contracts/create/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:46:13,036 log 34232 26004 "GET /dashboard/contracts/19/ HTTP/1.1" 200 46181
+INFO 2026-03-27 15:46:34,807 log 34232 26004 "GET /dashboard/contracts/19/ HTTP/1.1" 200 45736
+INFO 2026-03-27 15:46:47,635 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[9054a306-14ef-4e8e-80ee-9862becb190b] succeeded in 3.2179999999934807s: {'status': 'sent', 'email': 'mugaboalice2@gmail.com'}
+INFO 2026-03-27 15:46:47,635 signals 34232 26004 Queued email sending for notification 5e638fa9-d13f-42bb-8961-be15014b6282 to mugaboalice2@gmail.com
+INFO 2026-03-27 15:46:50,765 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[de032782-cad4-4ae8-9e20-682550ca35ea] succeeded in 3.125s: {'status': 'sent', 'email': 'emmanuelalliance123@gmail.com'}
+INFO 2026-03-27 15:46:50,765 signals 34232 26004 Queued email sending for notification 0c98eb53-4445-422b-9966-5813552fc66d to emmanuelalliance123@gmail.com
+INFO 2026-03-27 15:46:54,152 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[4b2208f6-9588-4fed-93b8-fd19fac76a1a] succeeded in 3.3910000000032596s: {'status': 'sent', 'email': 'egashema133@gmail.com'}
+INFO 2026-03-27 15:46:54,153 signals 34232 26004 Queued email sending for notification 75fad42c-6a66-49c1-8dbf-9b1480298de4 to egashema133@gmail.com
+INFO 2026-03-27 15:46:57,399 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[7b3a4808-7326-4a78-b79e-0d186bea7ceb] succeeded in 3.25s: {'status': 'sent', 'email': 'manuclaude089@gmail.com'}
+INFO 2026-03-27 15:46:57,399 signals 34232 26004 Queued email sending for notification 2e7d0cf8-3d04-4e43-b94b-597661f25211 to manuclaude089@gmail.com
+INFO 2026-03-27 15:46:57,401 log 34232 26004 "POST /dashboard/contracts/19/update/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:46:57,569 log 34232 26004 "GET /dashboard/contracts/19/ HTTP/1.1" 200 48992
+INFO 2026-03-27 15:47:32,401 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[be8d77c1-ba68-4994-a8d9-ad3cdb1e274a] succeeded in 3.437999999994645s: {'status': 'sent', 'email': 'mugaboalice2@gmail.com'}
+INFO 2026-03-27 15:47:32,403 signals 34232 26004 Queued email sending for notification 176a0a2d-47d0-43b7-95fd-e1727fac204b to mugaboalice2@gmail.com
+INFO 2026-03-27 15:47:35,718 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[e59ce00b-12a6-4a17-af1a-297cb519dc06] succeeded in 3.312000000005355s: {'status': 'sent', 'email': 'emmanuelalliance123@gmail.com'}
+INFO 2026-03-27 15:47:35,718 signals 34232 26004 Queued email sending for notification 535b900e-799d-4586-a15f-3550168ac657 to emmanuelalliance123@gmail.com
+INFO 2026-03-27 15:47:39,008 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[d6815a91-c22e-4cce-bc9e-1f8643ad09fb] succeeded in 3.2969999999913853s: {'status': 'sent', 'email': 'egashema133@gmail.com'}
+INFO 2026-03-27 15:47:39,008 signals 34232 26004 Queued email sending for notification d0c83251-fe73-471e-b674-d1fad8030c49 to egashema133@gmail.com
+INFO 2026-03-27 15:47:42,249 trace 34232 26004 Task apps.notifications.tasks.send_notification_email[60941b3a-5f8f-4f39-8a31-3abe58fc905c] succeeded in 3.235000000000582s: {'status': 'sent', 'email': 'manuclaude089@gmail.com'}
+INFO 2026-03-27 15:47:42,249 signals 34232 26004 Queued email sending for notification 97bf4324-73c6-4aa2-91af-2e0f1295bede to manuclaude089@gmail.com
+INFO 2026-03-27 15:47:42,251 log 34232 26004 "POST /dashboard/contracts/19/update/ HTTP/1.1" 302 0
+INFO 2026-03-27 15:47:42,514 log 34232 26004 "GET /dashboard/contracts/19/ HTTP/1.1" 200 49963
+INFO 2026-03-27 15:48:46,398 log 34232 26004 "GET /dashboard/contracts/ HTTP/1.1" 200 58127
+INFO 2026-03-30 20:59:26,343 autoreload 9824 16796 Watching for file changes with StatReloader
+INFO 2026-03-30 20:59:42,640 log 9824 3632 "GET / HTTP/1.1" 302 0
+INFO 2026-03-30 20:59:43,095 log 9824 3632 "GET /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-30 20:59:43,515 log 9824 3632 "GET /dashboard/ HTTP/1.1" 200 36709
+WARNING 2026-03-30 20:59:44,548 log 9824 3632 Not Found: /favicon.ico
+WARNING 2026-03-30 20:59:44,551 log 9824 3632 "GET /favicon.ico HTTP/1.1" 404 4143
+INFO 2026-03-30 20:59:56,412 log 9824 3632 "GET /dashboard/tenders/ HTTP/1.1" 200 41556
+INFO 2026-03-30 21:00:01,641 log 9824 3632 "GET /dashboard/contracts/ HTTP/1.1" 200 58612
+INFO 2026-03-30 21:00:07,563 log 9824 3632 "GET /dashboard/admin/reports/ HTTP/1.1" 200 21557
+INFO 2026-03-30 21:00:23,720 log 9824 3632 "GET /dashboard/admin/users/ HTTP/1.1" 200 47421
+INFO 2026-03-30 21:01:15,545 log 9824 3632 "GET /accounts/logout/ HTTP/1.1" 302 0
+INFO 2026-03-30 21:01:15,563 log 9824 3632 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-30 21:01:36,450 log 9824 3632 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-30 21:01:36,927 log 9824 3632 "GET /dashboard/ HTTP/1.1" 200 75691
+INFO 2026-03-30 21:02:01,431 log 9824 20220 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-30 21:02:03,194 log 9824 20220 "GET /dashboard/procurement/reports/ HTTP/1.1" 200 65133
+INFO 2026-03-30 21:02:35,804 log 9824 20220 "GET /dashboard/ HTTP/1.1" 200 50689
+WARNING 2026-03-30 21:06:17,981 log 9824 3528 Not Found: /favicon.ico
+WARNING 2026-03-30 21:06:17,988 log 9824 3528 "GET /favicon.ico HTTP/1.1" 404 4143
+INFO 2026-03-30 21:06:24,352 log 9824 32620 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-30 21:07:11,238 log 9824 32620 "GET /dashboard/contracts/ HTTP/1.1" 200 32315
+INFO 2026-03-30 21:07:20,573 log 9824 32620 "GET /dashboard/hod/reports/ HTTP/1.1" 200 51408
+INFO 2026-03-30 21:07:43,161 log 9824 32620 "GET /dashboard/ HTTP/1.1" 200 38763
+INFO 2026-03-30 21:08:32,665 log 9824 5748 "GET /dashboard/ HTTP/1.1" 200 63273
+WARNING 2026-03-30 21:08:34,512 log 9824 5748 Not Found: /favicon.ico
+WARNING 2026-03-30 21:08:34,514 log 9824 5748 "GET /favicon.ico HTTP/1.1" 404 4143
+INFO 2026-03-30 21:11:23,511 log 9824 5748 "GET /dashboard/procurement/reports/ HTTP/1.1" 200 64903
+INFO 2026-03-30 21:11:50,785 log 9824 5748 "GET /dashboard/procurement/compile-document/ HTTP/1.1" 200 15279
+INFO 2026-03-30 21:25:43,584 log 9824 15628 "GET /dashboard/cbm/compiled-documents/ HTTP/1.1" 200 13411
+INFO 2026-03-30 21:25:46,481 log 9824 15628 "GET /dashboard/ HTTP/1.1" 200 50689
+INFO 2026-03-30 21:25:49,299 log 9824 15628 "GET /dashboard/cbm/calls/ HTTP/1.1" 200 18253
+INFO 2026-03-30 21:57:40,600 log 9824 30504 "GET /dashboard/tenders/ HTTP/1.1" 200 41061
+INFO 2026-03-30 21:58:22,195 log 9824 30504 "POST /dashboard/tenders/create/ HTTP/1.1" 302 0
+INFO 2026-03-30 21:58:22,466 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 34320
+INFO 2026-03-30 21:58:52,489 trace 9824 30504 Task apps.notifications.tasks.send_notification_email[16cdc590-783c-456b-967a-face7f52eca3] succeeded in 5.14000000001397s: {'status': 'sent', 'email': 'emmygashema@gmail.com'}
+INFO 2026-03-30 21:58:52,489 signals 9824 30504 Queued email sending for notification d40ecf0e-b835-4283-a94a-f8574d99975f to emmygashema@gmail.com
+INFO 2026-03-30 21:58:52,492 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 21:58:52,678 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 38575
+INFO 2026-03-30 21:59:31,141 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 21:59:31,502 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 39965
+INFO 2026-03-30 21:59:59,145 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 21:59:59,407 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 41421
+INFO 2026-03-30 22:00:19,940 trace 9824 30504 Task apps.notifications.tasks.send_notification_email[48b3b057-939f-446e-b8e3-51c8eeb0f0be] succeeded in 4.467999999993481s: {'status': 'sent', 'email': 'emmygashema@gmail.com'}
+INFO 2026-03-30 22:00:19,940 signals 9824 30504 Queued email sending for notification d19a5f98-9ea2-4055-b599-0ba5974eafad to emmygashema@gmail.com
+INFO 2026-03-30 22:00:19,943 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:00:20,128 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 44363
+INFO 2026-03-30 22:00:39,698 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:00:39,883 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 44559
+INFO 2026-03-30 22:00:53,332 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:00:53,602 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 45999
+INFO 2026-03-30 22:01:13,184 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:01:13,384 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 47435
+INFO 2026-03-30 22:01:36,838 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:01:37,024 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 48889
+INFO 2026-03-30 22:01:56,407 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:01:56,657 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 50341
+INFO 2026-03-30 22:02:09,933 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:02:10,157 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 51731
+INFO 2026-03-30 22:02:16,783 log 9824 30504 "POST /dashboard/tenders/RBC/2025/PPMU/G/028/advance/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:02:16,985 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/028/ HTTP/1.1" 200 50064
+INFO 2026-03-30 22:02:41,220 log 9824 30504 "GET /dashboard/tenders/ HTTP/1.1" 200 43052
+INFO 2026-03-30 22:02:45,927 log 9824 30504 "GET /dashboard/tenders/RBC/2025/PPMU/G/027/ HTTP/1.1" 200 39589
+INFO 2026-03-30 22:03:01,271 log 9824 30504 "GET /dashboard/procurement/reports/ HTTP/1.1" 200 64931
+INFO 2026-03-30 22:05:30,752 log 9824 30504 "GET /alerts/ HTTP/1.1" 200 11113
+INFO 2026-03-30 22:05:43,192 log 9824 30504 "GET /dashboard/ HTTP/1.1" 200 63273
+INFO 2026-03-30 22:06:09,746 log 9824 30504 "GET /dashboard/contracts/19/ HTTP/1.1" 200 49570
+INFO 2026-03-30 22:06:45,971 log 9824 30504 "GET /dashboard/ HTTP/1.1" 200 63273
+INFO 2026-03-30 22:07:18,491 log 9824 30504 "GET /dashboard/contracts/ HTTP/1.1" 200 58141
+INFO 2026-03-30 22:07:20,987 log 9824 30504 "GET /dashboard/procurement/reports/ HTTP/1.1" 200 64931
+INFO 2026-03-30 22:07:54,324 log 9824 30504 "GET /dashboard/contracts/ HTTP/1.1" 200 58141
+INFO 2026-03-30 22:07:59,639 log 9824 30504 "GET /dashboard/contracts/18/ HTTP/1.1" 200 60802
+INFO 2026-03-30 22:08:04,869 log 9824 30504 "GET /dashboard/contracts/ HTTP/1.1" 200 58141
+INFO 2026-03-30 22:08:18,380 log 9824 30504 "GET /dashboard/contracts/1/ HTTP/1.1" 200 40060
+INFO 2026-03-30 22:08:25,232 log 9824 30504 "GET /dashboard/contracts/ HTTP/1.1" 200 58141
+INFO 2026-03-30 22:08:29,518 log 9824 30504 "GET /dashboard/contracts/19/ HTTP/1.1" 200 49570
+INFO 2026-03-30 22:08:34,236 log 9824 30504 "GET /dashboard/contracts/ HTTP/1.1" 200 58141
+INFO 2026-03-30 22:08:37,531 log 9824 30504 "GET /dashboard/contracts/18/ HTTP/1.1" 200 60802
+INFO 2026-03-30 22:08:40,985 log 9824 30504 "GET /dashboard/contracts/ HTTP/1.1" 200 58141
+INFO 2026-03-30 22:09:43,987 log 9824 30504 "GET /dashboard/procurement/reports/ HTTP/1.1" 200 64931
+INFO 2026-03-30 22:15:50,696 log 9824 35152 "GET /dashboard/ HTTP/1.1" 200 50689
+INFO 2026-03-30 22:16:15,194 log 9824 16104 "GET /dashboard/ HTTP/1.1" 200 63273
+INFO 2026-03-30 22:16:25,042 log 9824 16104 "GET /dashboard/ HTTP/1.1" 200 63273
+INFO 2026-03-30 22:16:30,972 log 9824 16104 "GET /dashboard/procurement/compile-document/ HTTP/1.1" 200 15279
+INFO 2026-03-30 22:16:32,906 log 9824 16104 "GET /dashboard/ HTTP/1.1" 200 63273
+INFO 2026-03-30 22:22:42,844 autoreload 9824 16796 C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\apps\dashboard\views.py changed, reloading.
+INFO 2026-03-30 22:22:48,385 autoreload 2804 13844 Watching for file changes with StatReloader
+INFO 2026-03-30 22:23:29,550 log 2804 15096 "GET /dashboard/ HTTP/1.1" 200 35008
+INFO 2026-03-30 22:24:30,563 log 2804 20972 "GET /dashboard/ HTTP/1.1" 200 50641
+INFO 2026-03-30 22:33:12,922 log 2804 13300 "GET /admin/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:33:13,251 log 2804 13300 "GET /admin/login/?next=/admin/ HTTP/1.1" 200 3617
+INFO 2026-03-30 22:33:25,977 log 2804 13300 "POST /admin/login/?next=/admin/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:33:26,316 log 2804 13300 "GET /admin/ HTTP/1.1" 200 39065
+INFO 2026-03-30 22:33:43,275 log 2804 13300 "GET /admin/divisions/division/add/ HTTP/1.1" 200 37732
+INFO 2026-03-30 22:33:43,355 log 2804 13300 "GET /static/admin/css/forms.css HTTP/1.1" 200 8817
+INFO 2026-03-30 22:33:43,361 log 2804 33264 "GET /static/admin/js/jquery.init.js HTTP/1.1" 200 347
+INFO 2026-03-30 22:33:43,367 log 2804 4660 "GET /static/admin/js/core.js HTTP/1.1" 200 6208
+INFO 2026-03-30 22:33:43,369 log 2804 36760 "GET /static/admin/js/admin/RelatedObjectLookups.js HTTP/1.1" 200 9777
+INFO 2026-03-30 22:33:43,377 log 2804 13300 "GET /static/admin/js/actions.js HTTP/1.1" 200 8076
+INFO 2026-03-30 22:33:43,395 log 2804 36760 "GET /static/admin/js/prepopulate.js HTTP/1.1" 200 1531
+INFO 2026-03-30 22:33:43,395 log 2804 13300 "GET /static/admin/js/prepopulate_init.js HTTP/1.1" 200 586
+INFO 2026-03-30 22:33:43,403 log 2804 36760 "GET /static/admin/css/widgets.css HTTP/1.1" 200 11811
+INFO 2026-03-30 22:33:43,421 log 2804 33264 "GET /static/admin/js/urlify.js HTTP/1.1" 200 7887
+INFO 2026-03-30 22:33:43,506 log 2804 18828 "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 200 285314
+INFO 2026-03-30 22:33:43,609 log 2804 2808 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-03-30 22:33:43,616 log 2804 4660 "GET /static/admin/js/vendor/xregexp/xregexp.js HTTP/1.1" 200 325171
+INFO 2026-03-30 22:33:43,636 log 2804 4660 "GET /static/admin/js/change_form.js HTTP/1.1" 200 606
+INFO 2026-03-30 22:33:59,458 log 2804 4660 "GET /admin/divisions/division/ HTTP/1.1" 200 39570
+INFO 2026-03-30 22:33:59,524 log 2804 4660 "GET /static/admin/css/changelists.css HTTP/1.1" 200 7498
+INFO 2026-03-30 22:33:59,533 log 2804 33264 "GET /static/admin/img/icon-yes.svg HTTP/1.1" 200 558
+INFO 2026-03-30 22:33:59,533 log 2804 18828 "GET /static/admin/img/search.svg HTTP/1.1" 200 607
+INFO 2026-03-30 22:33:59,570 log 2804 18828 "GET /static/admin/js/filters.js HTTP/1.1" 200 978
+INFO 2026-03-30 22:33:59,655 log 2804 2808 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-03-30 22:33:59,696 log 2804 2808 "GET /static/admin/img/tooltag-add.svg HTTP/1.1" 200 593
+INFO 2026-03-30 22:33:59,701 log 2804 18828 "GET /static/admin/img/sorting-icons.svg HTTP/1.1" 200 1761
+INFO 2026-03-30 22:34:23,565 log 2804 18828 "GET /admin/divisions/division/add/ HTTP/1.1" 200 37732
+INFO 2026-03-30 22:34:23,749 log 2804 18828 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-03-30 22:34:40,464 log 2804 18828 "POST /admin/divisions/division/add/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:34:40,752 log 2804 18828 "GET /admin/divisions/division/ HTTP/1.1" 200 40241
+INFO 2026-03-30 22:34:40,939 log 2804 18828 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-03-30 22:34:40,966 log 2804 18828 "GET /static/admin/img/icon-yes-dark.svg HTTP/1.1" 200 558
+INFO 2026-03-30 22:34:47,511 log 2804 18828 "GET /admin/divisions/division/10/change/ HTTP/1.1" 200 38049
+INFO 2026-03-30 22:34:47,702 log 2804 18828 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-03-30 22:34:50,996 log 2804 18828 "GET /admin/divisions/division/10/delete/ HTTP/1.1" 200 31973
+INFO 2026-03-30 22:34:51,065 log 2804 18828 "GET /static/admin/js/cancel.js HTTP/1.1" 200 884
+INFO 2026-03-30 22:34:52,679 log 2804 18828 "POST /admin/divisions/division/10/delete/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:34:53,024 log 2804 18828 "GET /admin/divisions/division/ HTTP/1.1" 200 39729
+INFO 2026-03-30 22:34:53,277 log 2804 18828 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-03-30 22:34:57,867 log 2804 18828 "GET /admin/divisions/division/add/ HTTP/1.1" 200 37732
+INFO 2026-03-30 22:34:58,063 log 2804 18828 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-03-30 22:35:03,750 log 2804 18828 "POST /admin/divisions/division/add/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:35:04,029 log 2804 18828 "GET /admin/divisions/division/ HTTP/1.1" 200 40241
+INFO 2026-03-30 22:35:04,207 log 2804 18828 "GET /admin/jsi18n/ HTTP/1.1" 200 3342
+INFO 2026-03-30 22:35:09,732 log 2804 18828 "GET /accounts/logout/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:35:09,745 log 2804 18828 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-30 22:35:13,188 log 2804 18828 "GET /accounts/signup/ HTTP/1.1" 200 7923
+INFO 2026-03-30 22:36:41,914 log 2804 18828 "GET /admin/contracts/purchaseorder/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:36:41,950 log 2804 18828 "GET /admin/login/?next=/admin/contracts/purchaseorder/ HTTP/1.1" 200 4135
+INFO 2026-03-30 22:36:54,694 log 2804 18828 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-30 22:36:57,862 log 2804 18828 "GET /accounts/password/reset/ HTTP/1.1" 200 3433
+INFO 2026-03-30 22:37:05,027 log 2804 18828 "POST /accounts/password/reset/ HTTP/1.1" 200 3145
+INFO 2026-03-30 22:37:57,548 log 2804 18828 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-30 22:38:00,505 log 2804 18828 "GET /accounts/password/reset/ HTTP/1.1" 200 3433
+INFO 2026-03-30 22:38:17,331 log 2804 18828 "POST /accounts/password/reset/ HTTP/1.1" 200 3145
+INFO 2026-03-30 22:38:20,448 log 2804 18828 "GET /accounts/password/reset/confirm/NDFiNDlmNWItYzY4YS00YTY1LWE5NmYtNDQwZjUyN2I0NTFl/d69yvt-3016fc50ff024de51a72d361fa0e4923/ HTTP/1.1" 200 4653
+INFO 2026-03-30 22:38:32,645 log 2804 18828 "GET /accounts/login/ HTTP/1.1" 200 4409
+INFO 2026-03-30 22:39:22,008 log 2804 18828 "POST /accounts/login/ HTTP/1.1" 302 0
+INFO 2026-03-30 22:39:22,438 log 2804 18828 "GET /dashboard/ HTTP/1.1" 200 76239
+INFO 2026-03-30 22:39:38,282 log 2804 18828 "POST /alerts/attention/dismiss/ HTTP/1.1" 200 16
+INFO 2026-03-30 22:41:52,436 log 2804 18828 "GET /dashboard/cbm/calls/ HTTP/1.1" 200 18253
+INFO 2026-03-30 22:42:07,110 log 2804 18828 "GET /dashboard/ HTTP/1.1" 200 51237
+INFO 2026-03-30 22:42:57,740 log 2804 18828 "GET /dashboard/ HTTP/1.1" 200 51249
+INFO 2026-03-30 22:43:44,259 log 2804 2740 "GET /dashboard/contracts/ HTTP/1.1" 200 58235
+INFO 2026-03-30 22:43:57,818 log 2804 2740 "GET /dashboard/contracts/?q=&type=&status=Active HTTP/1.1" 200 53083
+INFO 2026-03-30 22:44:05,260 log 2804 2740 "GET /dashboard/contracts/?q=&type=&status=Cancelled HTTP/1.1" 200 26709
+INFO 2026-03-30 22:44:16,506 log 2804 2740 "GET /dashboard/contracts/?q=&type=&status= HTTP/1.1" 200 58235
+INFO 2026-03-30 22:44:21,148 log 2804 2740 "GET /dashboard/contracts/?q=&type=Goods&status= HTTP/1.1" 200 27171
+INFO 2026-03-30 22:44:29,643 log 2804 2740 "GET /dashboard/contracts/?q=&type=&status= HTTP/1.1" 200 58235
+INFO 2026-03-31 06:34:08,080 autoreload 2804 13844 C:\Users\EmmyG\OneDrive\Documents\RBC\pts_project (3)\pts_project\pts_project\settings.py changed, reloading.
+INFO 2026-03-31 06:34:12,639 autoreload 38488 37624 Watching for file changes with StatReloader

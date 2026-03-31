@@ -861,8 +861,22 @@ def cbm_dashboard_view(request):
     from apps.procurement.models import CompiledDocument
     from django.db.models import Sum, Count
 
-    # ── Active calls ─────────────────────────────────────────────
-    active_calls_qs = ProcurementCall.objects.filter(status='Active')
+    # ── Split calls by deadline status ──────────────────────────
+    _now = timezone.now()
+    # Open calls: deadline has NOT yet passed
+    open_calls_qs = ProcurementCall.objects.filter(
+        status__in=['Active', 'Extended']
+    ).filter(
+        Q(extended_date__isnull=False, extended_date__gte=_now) |
+        Q(extended_date__isnull=True, end_date__gte=_now)
+    )
+    # Past-deadline calls: Active/Extended but submission window has closed
+    past_deadline_calls_qs = ProcurementCall.objects.filter(
+        status__in=['Active', 'Extended']
+    ).filter(
+        Q(extended_date__isnull=False, extended_date__lt=_now) |
+        Q(extended_date__isnull=True, end_date__lt=_now)
+    )
 
     # ── Stages where CBM is notified (auto-advanced, no manual action required) ──
     # Note: These stages now auto-advance with notification to CBM for information only
@@ -943,9 +957,9 @@ def cbm_dashboard_view(request):
         status__in=live_statuses, is_deleted=False
     ).aggregate(total=Sum('total_budget'))['total'] or 0
 
-    # ── Active calls with per-division progress ──────────────────
+    # ── Open calls with per-division progress ────────────────────
     active_calls_data = []
-    for call in active_calls_qs.prefetch_related('submissions'):
+    for call in open_calls_qs.prefetch_related('submissions'):
         subs = Submission.objects.filter(call=call, is_deleted=False)
         active_calls_data.append({
             'id': call.id,
@@ -953,6 +967,20 @@ def cbm_dashboard_view(request):
             'title': call.title,
             'end_date': call.end_date,
             'days_remaining': call.days_remaining,
+            'total_submissions': subs.count(),
+            'divisions_submitted': subs.values('division').distinct().count(),
+        })
+
+    # ── Past-deadline calls data ─────────────────────────────────
+    past_deadline_calls_data = []
+    for call in past_deadline_calls_qs.prefetch_related('submissions'):
+        subs = Submission.objects.filter(call=call, is_deleted=False)
+        effective_end = call.extended_date or call.end_date
+        past_deadline_calls_data.append({
+            'id': call.id,
+            'reference_number': call.reference_number,
+            'title': call.title,
+            'end_date': effective_end,
             'total_submissions': subs.count(),
             'divisions_submitted': subs.values('division').distinct().count(),
         })
@@ -984,7 +1012,8 @@ def cbm_dashboard_view(request):
 
     # ── KPI stats ────────────────────────────────────────────────
     stats = {
-        'active_calls': active_calls_qs.count(),
+        'open_calls': open_calls_qs.count(),
+        'past_deadline_calls': past_deadline_calls_qs.count(),
         'awaiting_cbm_action': len(action_queue),
         'tenders_in_progress': _Tender.objects.exclude(
             status__in=['Completed', 'Cancelled']
@@ -1001,6 +1030,7 @@ def cbm_dashboard_view(request):
         'pipeline_funnel': pipeline_funnel,
         'contract_health': contract_health,
         'active_calls_data': active_calls_data,
+        'past_deadline_calls_data': past_deadline_calls_data,
         'divisions_status': divisions_status,
         'recent_activity': recent_activity,
         'pending_compiled_count': CompiledDocument.objects.filter(status='Sent to CBM').count(),
@@ -1921,8 +1951,22 @@ def hod_dashboard_view(request):
         context = {'error': 'No division assigned to your account'}
         return render(request, 'dashboard/hod_dashboard.html', context)
 
-    # Get active calls
-    active_calls = ProcurementCall.objects.filter(status='Active')
+    # Split calls by whether their submission deadline has passed
+    now = timezone.now()
+    # Open calls: deadline has NOT yet passed
+    open_calls_qs = ProcurementCall.objects.filter(
+        status__in=['Active', 'Extended']
+    ).filter(
+        Q(extended_date__isnull=False, extended_date__gte=now) |
+        Q(extended_date__isnull=True, end_date__gte=now)
+    )
+    # Past-deadline calls: still Active/Extended but submission window has closed
+    past_deadline_calls_qs = ProcurementCall.objects.filter(
+        status__in=['Active', 'Extended']
+    ).filter(
+        Q(extended_date__isnull=False, extended_date__lt=now) |
+        Q(extended_date__isnull=True, end_date__lt=now)
+    )
 
     # Get division's submissions
     submissions = Submission.objects.filter(
@@ -1973,7 +2017,8 @@ def hod_dashboard_view(request):
     # ── Calculate KPI stats ───────────────────────────────────────
     stats = {
         'division_name': division.name,
-        'active_calls': active_calls.count(),
+        'open_calls': open_calls_qs.count(),
+        'past_deadline_calls': past_deadline_calls_qs.count(),
         'total_submissions': submissions.count(),
         'returned': pipeline['returned'],
         'in_progress': pipeline['submitted'] + pipeline['review'] + pipeline['tender'],
@@ -2000,9 +2045,9 @@ def hod_dashboard_view(request):
                 'class': status_class,
             })
 
-    # ── Active calls with submission deadline info ──────────────
+    # ── Open calls with submission deadline info ──────────────
     active_calls_list = []
-    for call in active_calls:
+    for call in open_calls_qs:
         division_submission = submissions.filter(call=call).first()
         days_remaining = call.days_remaining
         deadline_class = 'danger' if days_remaining <= 3 else ('warning' if days_remaining <= 7 else 'info')
@@ -2014,6 +2059,21 @@ def hod_dashboard_view(request):
             'end_date': call.end_date,
             'days_remaining': days_remaining,
             'deadline_class': deadline_class,
+            'has_submission': division_submission is not None,
+            'submission_id': division_submission.id if division_submission else None,
+            'submission_status': division_submission.status if division_submission else None,
+        })
+
+    # ── Past-deadline calls (window closed, not yet formally closed) ──
+    past_deadline_calls_list = []
+    for call in past_deadline_calls_qs:
+        division_submission = submissions.filter(call=call).first()
+        effective_end = call.extended_date or call.end_date
+        past_deadline_calls_list.append({
+            'id': call.id,
+            'reference_number': call.reference_number,
+            'title': call.title,
+            'end_date': effective_end,
             'has_submission': division_submission is not None,
             'submission_id': division_submission.id if division_submission else None,
             'submission_status': division_submission.status if division_submission else None,
@@ -2058,6 +2118,7 @@ def hod_dashboard_view(request):
         'submission_breakdown': submission_breakdown,
         'recent_submissions': recent_submissions,
         'active_calls_list': active_calls_list,
+        'past_deadline_calls_list': past_deadline_calls_list,
         'unread_notifications': unread_notifications,
         'unread_count': unread_count,
         'division': division,
